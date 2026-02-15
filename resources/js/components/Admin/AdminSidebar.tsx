@@ -25,7 +25,7 @@ export default function AdminSidebar() {
             ),
         },
         {
-            name: 'Manage Users',
+            name: 'User Management',
             href: '/admin/users',
             icon: (
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
