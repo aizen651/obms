@@ -1,6 +1,7 @@
 import React from 'react';
 import AdminSidebar from '@/components/Admin/AdminSidebar';
 import { Link, usePage } from '@inertiajs/react';
+import { Toaster } from 'sonner';
 
 export default function AdminAuthLayout({ children, header }) {
     const { auth } = usePage().props;
