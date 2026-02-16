@@ -35,6 +35,7 @@ export default function BookEdit({ book, categories }) {
         description: book.description || '',
         book_image: null,
         total_copies: book.total_copies || 1,
+        available_copies: book.available_copies || 1, // ADD THIS - it's required in validation
         shelf_location: book.shelf_location || '',
         status: book.status || 'available',
         _method: 'PUT'
@@ -69,17 +70,21 @@ export default function BookEdit({ book, categories }) {
 
     const handleSubmit = (e) => {
         e.preventDefault();
+        
+        // Use post with _method in the data for file uploads
         post(route('admin.books.update', book.id), {
             forceFormData: true,
             preserveScroll: true,
             onSuccess: () => {
                 toast.success('Book updated successfully!');
+                router.visit(route('admin.books.show', book.id));
             },
             onError: (errors) => {
+                console.log('Errors:', errors); // Debug log
                 if (errors.error) {
                     toast.error(errors.error);
                 } else {
-                    toast.error('Failed to update book');
+                    toast.error('Failed to update book. Please check the form.');
                 }
             }
         });
@@ -121,7 +126,7 @@ export default function BookEdit({ book, categories }) {
                                             <button
                                                 type="button"
                                                 onClick={() => {
-                                                    setImagePreview(null);
+                                                    setImagePreview(book.image_url || null);
                                                     setData('book_image', null);
                                                 }}
                                                 className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
@@ -140,7 +145,7 @@ export default function BookEdit({ book, categories }) {
                                 {/* Upload Button */}
                                 <label className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-medium rounded-lg cursor-pointer transition">
                                     <Upload className="w-4 h-4" />
-                                    {imagePreview ? 'Change Image' : 'Upload Image'}
+                                    {imagePreview && imagePreview !== book.image_url ? 'Change Image' : 'Upload Image'}
                                     <input
                                         type="file"
                                         accept="image/jpeg,image/png,image/jpg,image/gif,image/webp"
@@ -247,7 +252,7 @@ export default function BookEdit({ book, categories }) {
 
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            Publisher <span className="text-red-500">*</span>
+                                            Publisher
                                         </label>
                                         <div className="relative">
                                             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -257,13 +262,10 @@ export default function BookEdit({ book, categories }) {
                                                 type="text"
                                                 value={data.publisher}
                                                 onChange={(e) => setData('publisher', e.target.value)}
-                                                className={`block w-full pl-10 pr-3 py-2.5 border rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent transition ${
-                                                    errors.publisher ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                                                }`}
+                                                className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent transition"
                                                 placeholder="Publisher name"
                                             />
                                         </div>
-                                        {errors.publisher && <p className="mt-1 text-sm text-red-600">{errors.publisher}</p>}
                                     </div>
 
                                     <div>
@@ -330,7 +332,7 @@ export default function BookEdit({ book, categories }) {
                                             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                                 <FileText className="h-5 w-5 text-gray-400" />
                                             </div>
-                                            <input
+                  <input
                                                 type="number"
                                                 value={data.pages}
                                                 onChange={(e) => setData('pages', e.target.value)}
@@ -356,6 +358,7 @@ export default function BookEdit({ book, categories }) {
                                 </div>
                             </div>
 
+                            {/* Library Management */}
                             <div className="bg-white rounded-xl shadow-sm border p-6">
                                 <h3 className="text-lg font-semibold text-gray-900 mb-6">Library Management</h3>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -377,6 +380,24 @@ export default function BookEdit({ book, categories }) {
                                     </div>
 
                                     <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Available Copies <span className="text-red-500">*</span>
+                                        </label>
+                                        <input
+                                            type="number"
+                                            value={data.available_copies}
+                                            onChange={(e) => setData('available_copies', e.target.value)}
+                                            className={`block w-full pl-3 pr-3 py-2.5 border rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent transition ${
+                                                errors.available_copies ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                                            }`}
+                                            placeholder="1"
+                                            min="0"
+                                            max={data.total_copies}
+                                        />
+                                        {errors.available_copies && <p className="mt-1 text-sm text-red-600">{errors.available_copies}</p>}
+                                    </div>
+
+                                    <div className="sm:col-span-2">
                                         <label className="block text-sm font-medium text-gray-700 mb-2">
                                             Shelf Location
                                         </label>
@@ -414,12 +435,14 @@ export default function BookEdit({ book, categories }) {
                                 </div>
                             </div>
 
+                            {/* Action Buttons */}
                             <div className="bg-white rounded-xl shadow-sm border p-6">
                                 <div className="flex flex-col sm:flex-row gap-3 justify-end">
                                     <button
                                         type="button"
                                         onClick={() => router.visit(route('admin.books.show', book.id))}
                                         className="inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition"
+                                        disabled={processing}
                                     >
                                         <X className="w-4 h-4" />
                                         Cancel

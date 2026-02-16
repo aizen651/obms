@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import AdminAuthLayout from '@/layouts/AdminAuthLayout';
 import BookCreateModal from '@/components/Admin/BookCreateModal';
@@ -8,6 +8,7 @@ import { Plus, Search, Filter, Trash2, BookOpen, ChevronUp, ChevronDown, Eye } f
 
 export default function Books({ books, categories, filters }) {
     const [search, setSearch] = useState(filters?.search || '');
+    
     const [categoryFilter, setCategoryFilter] = useState(filters?.category || '');
     const [statusFilter, setStatusFilter] = useState(filters?.status || '');
     const [showFilters, setShowFilters] = useState(false);
@@ -15,11 +16,35 @@ export default function Books({ books, categories, filters }) {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [bookToDelete, setBookToDelete] = useState(null);
     const [isDeleting, setIsDeleting] = useState(false);
+    
+    // Add live search with debounce
+    const DEBOUNCE_DELAY = 500;
 
+    useEffect(() => {
+    const handler = setTimeout(() => {
+        router.get('/admin/books', {
+            search,
+            category: categoryFilter,
+            status: statusFilter,
+            sort: filters?.sort,
+            direction: filters?.direction,
+        }, {
+            preserveState: true,
+            replace: true,
+        });
+    }, DEBOUNCE_DELAY);
+
+    return () => {
+        clearTimeout(handler);
+    };
+}, [search, categoryFilter, statusFilter]);
+
+    {/* 
     const handleSearch = (e) => {
         e.preventDefault();
         router.get('/admin/books', { search, category: categoryFilter, status: statusFilter }, { preserveState: true });
     };
+    */}
 
     const handleSort = (column) => {
         const direction = filters?.sort === column && filters?.direction === 'asc' ? 'desc' : 'asc';
@@ -64,7 +89,7 @@ export default function Books({ books, categories, filters }) {
     );
 
     return (
-        <AdminAuthLayout header="Books">
+        <AdminAuthLayout>
             <Head title="Books" />
 
             <div className="space-y-4">
@@ -82,15 +107,15 @@ export default function Books({ books, categories, filters }) {
 
                 {/* Search & Filters */}
                 <div className="bg-white rounded-lg shadow-sm border p-3 sm:p-4">
-                    <form onSubmit={handleSearch} className="space-y-3">
+                  
                         <div className="relative">
                             <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                            <input
+                           <input
                                 type="text"
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                                 placeholder="Search books..."
-                                className="w-full pl-10 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none"
+                                className="w-full pl-10 pr-4 py-2.5 border border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-transparent outline-none"
                             />
                         </div>
 
@@ -112,11 +137,11 @@ export default function Books({ books, categories, filters }) {
                                     <option value="unavailable">Unavailable</option>
                                     <option value="archived">Archived</option>
                                 </select>
-                                <button type="submit" className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-medium">Apply</button>
+                              
                                 <button type="button" onClick={handleReset} className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium">Reset</button>
                             </div>
                         )}
-                    </form>
+                   
                 </div>
 
                 {/* Table Container */}

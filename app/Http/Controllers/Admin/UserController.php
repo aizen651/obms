@@ -4,139 +4,129 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rules;
 use Inertia\Inertia;
-use Inertia\Response;
-use Illuminate\Support\Facades\Storage;
 
 class UserController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(Request $request)
     {
         $query = User::query();
 
-        // Add borrowed books count (when you create the Borrow model later)
-        // For now, we'll add a placeholder
-        $query->withCount(['borrows as borrowed_books_count' => function ($q) {
-            $q->where('status', 'borrowed'); // Only count currently borrowed books
-        }]);
-
-        // Search
+        // Search filter
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function ($q) use ($search) {
+            $query->where(function($q) use ($search) {
                 $q->where('firstname', 'like', "%{$search}%")
-                    ->orWhere('lastname', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%")
-                    ->orWhere('contact', 'like', "%{$search}%")
-                    ->orWhere('student_id', 'like', "%{$search}%")
-                    ->orWhere('teacher_id', 'like', "%{$search}%");
+                  ->orWhere('lastname', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('student_id', 'like', "%{$search}%")
+                  ->orWhere('teacher_id', 'like', "%{$search}%");
             });
         }
 
-        // Filter by role
+        // Role filter
         if ($request->filled('role')) {
             $query->where('role', $request->role);
         }
 
         // Sorting
-        $sortColumn = $request->get('sort', 'created_at');
-        $sortDirection = $request->get('direction', 'desc');
-        
+        $sortColumn = $request->get('sort', 'firstname');
+        $sortDirection = $request->get('direction', 'asc');
         $query->orderBy($sortColumn, $sortDirection);
 
-        // Paginate
-        $users = $query->paginate(15)->withQueryString();
+        // Load borrowed books with book details
+        $users = $query->withCount('borrowedBooks')
+                       ->with(['borrowedBooks.book'])
+                       ->paginate(10)
+                       ->withQueryString();
+
+        // Transform to ensure image_url is included
+        $users->through(function ($user) {
+            // Map borrowed books to include the image_url accessor
+            $user->borrowed_books = $user->borrowedBooks->map(function($transaction) {
+                return [
+                    'id' => $transaction->id,
+                    'date_borrowed' => $transaction->date_borrowed,
+                    'expected_return_date' => $transaction->expected_return_date,
+                    'date_returned' => $transaction->date_returned,
+                    'status' => $transaction->status,
+                    'book' => $transaction->book ? [
+                        'id' => $transaction->book->id,
+                        'title' => $transaction->book->title,
+                        'author' => $transaction->book->author,
+                        'book_image' => $transaction->book->book_image,
+                        'image_url' => $transaction->book->image_url, // This is the key - add the accessor
+                    ] : null,
+                ];
+            });
+            
+            // Remove the original relationship to avoid duplication
+            unset($user->borrowedBooks);
+            
+            return $user;
+        });
 
         return Inertia::render('Admin/Users', [
             'users' => $users,
-            'filters' => [
-                'search' => $request->search,
-                'role' => $request->role,
-                'sort' => $sortColumn,
-                'direction' => $sortDirection,
-            ],
+            'filters' => $request->only(['search', 'role', 'sort', 'direction'])
         ]);
     }
 
-    public function create(): Response
-    {
-        return Inertia::render('Admin/UserCreate');
-    }
-
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request)
     {
         $validated = $request->validate([
-            'user_image' => ['nullable', 'image', 'max:2048'],
-            'firstname' => ['required', 'string', 'max:255'],
-            'lastname' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'unique:users,email'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'contact' => ['nullable', 'string', 'max:20'],
-            'gender' => ['nullable', 'in:male,female,other'],
-            'role' => ['required', 'in:admin,teacher,student'],
+            'user_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'firstname' => 'required|string|max:255',
+            'lastname' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users',
+            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'contact' => 'nullable|string|max:255',
+            'gender' => 'nullable|in:male,female,other',
+            'role' => 'required|in:admin,teacher,student',
+            'student_id' => 'nullable|string|unique:users,student_id',
+            'teacher_id' => 'nullable|string|unique:users,teacher_id',
         ]);
 
-        // Handle image upload
         if ($request->hasFile('user_image')) {
-            $validated['user_image'] = $request->file('user_image')->store('profile-images', 'public');
+            $validated['user_image'] = $request->file('user_image')->store('users', 'public');
         }
 
-        // Hash password
-        $validated['password'] = bcrypt($validated['password']);
+        $validated['password'] = Hash::make($validated['password']);
 
-        // Create user (ID auto-generates via model)
-        $user = User::create($validated);
+        User::create($validated);
 
-        // Get the generated ID for the success message
-        $memberId = '';
-        if ($user->role === 'student') {
-            $memberId = $user->student_id;
-        } elseif ($user->role === 'teacher') {
-            $memberId = $user->teacher_id;
-        }
-
-        $message = $memberId 
-            ? "User created successfully! Member ID: {$memberId}"
-            : "User created successfully!";
-
-        return redirect()->route('admin.users.index')->with('success', $message);
+        return redirect()->route('admin.users.index')->with('success', 'User created successfully!');
     }
 
-    public function edit(User $user): Response
-    {
-        return Inertia::render('Admin/UserEdit', [
-            'user' => $user,
-        ]);
-    }
-
-    public function update(Request $request, User $user): RedirectResponse
+    public function update(Request $request, User $user)
     {
         $validated = $request->validate([
-            'user_image' => ['nullable', 'image', 'max:2048'],
-            'remove_image' => ['nullable', 'boolean'],
-            'firstname' => ['required', 'string', 'max:255'],
-            'lastname' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'unique:users,email,' . $user->id],
-            'contact' => ['nullable', 'string', 'max:20'],
-            'gender' => ['nullable', 'in:male,female,other'],
-            'role' => ['required', 'in:admin,teacher,student'],
+            'user_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'firstname' => 'required|string|max:255',
+            'lastname' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
+            'password' => ['nullable', 'confirmed', Rules\Password::defaults()],
+            'contact' => 'nullable|string|max:255',
+            'gender' => 'nullable|in:male,female,other',
+            'role' => 'required|in:admin,teacher,student',
+            'student_id' => 'nullable|string|unique:users,student_id,' . $user->id,
+            'teacher_id' => 'nullable|string|unique:users,teacher_id,' . $user->id,
         ]);
 
-        // Handle image removal
-        if ($request->boolean('remove_image')) {
+        if ($request->hasFile('user_image')) {
             if ($user->user_image) {
-                Storage::disk('public')->delete($user->user_image);
+                \Storage::disk('public')->delete($user->user_image);
             }
-            $validated['user_image'] = null;
+            $validated['user_image'] = $request->file('user_image')->store('users', 'public');
         }
-        // Handle image upload
-        elseif ($request->hasFile('user_image')) {
-            if ($user->user_image) {
-                Storage::disk('public')->delete($user->user_image);
-            }
-            $validated['user_image'] = $request->file('user_image')->store('profile-images', 'public');
+
+        if (!empty($validated['password'])) {
+            $validated['password'] = Hash::make($validated['password']);
+        } else {
+            unset($validated['password']);
         }
 
         $user->update($validated);
@@ -144,20 +134,14 @@ class UserController extends Controller
         return redirect()->route('admin.users.index')->with('success', 'User updated successfully!');
     }
 
-    public function destroy(User $user): RedirectResponse
+    public function destroy(User $user)
     {
-        // Don't allow deleting yourself
-        if ($user->id === auth()->id()) {
-            return back()->with('error', 'You cannot delete your own account.');
-        }
-
-        // Delete user image if exists
         if ($user->user_image) {
-            Storage::disk('public')->delete($user->user_image);
+            \Storage::disk('public')->delete($user->user_image);
         }
 
         $user->delete();
 
-        return back()->with('success', 'User deleted successfully!');
+        return redirect()->route('admin.users.index')->with('success', 'User deleted successfully!');
     }
 }

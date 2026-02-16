@@ -6,6 +6,8 @@ use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\TransactionController;
+use App\Http\Controllers\Admin\Transaction\SettingController;
 use Illuminate\Support\Facades\Route;
 
 // Admin Routes
@@ -37,6 +39,14 @@ Route::prefix('admin')->name('admin.')->group(function () {
     
   // Book
     Route::resource('books', BookController::class);
+  
+  // Transaction
+  Route::resource('transactions', TransactionController::class);
+  // for print:
+    Route::get('/transactions/print/report', [TransactionController::class, 'print'])->name('transactions.print');
+  // Transaction Setting
+  Route::get('/settings', [SettingController::class, 'index'])->name('settings.index');
+    Route::post('/settings/late-fees', [SettingController::class, 'updateLateFees'])->name('settings.late-fees');
         
         Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     });

@@ -5,35 +5,33 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Book;
 use App\Models\Category;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
-use Inertia\Response;
 
 class BookController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(Request $request)
     {
         $query = Book::with('category');
 
-        // Search
+        // Search filter
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function ($q) use ($search) {
+            $query->where(function($q) use ($search) {
                 $q->where('title', 'like', "%{$search}%")
-                    ->orWhere('isbn', 'like', "%{$search}%")
-                    ->orWhere('author', 'like', "%{$search}%")
-                    ->orWhere('publisher', 'like', "%{$search}%");
+                  ->orWhere('author', 'like', "%{$search}%")
+                  ->orWhere('isbn', 'like', "%{$search}%")
+                  ->orWhere('publisher', 'like', "%{$search}%");
             });
         }
 
-        // Filter by category
+        // Category filter
         if ($request->filled('category')) {
             $query->where('category_id', $request->category);
         }
 
-        // Filter by status
+        // Status filter
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
@@ -41,54 +39,70 @@ class BookController extends Controller
         // Sorting
         $sortColumn = $request->get('sort', 'created_at');
         $sortDirection = $request->get('direction', 'desc');
-        
         $query->orderBy($sortColumn, $sortDirection);
 
-        // Paginate
-        $books = $query->paginate(15)->withQueryString();
-
-        // Get all categories for filter dropdown
+        $books = $query->paginate(10)->withQueryString();
         $categories = Category::orderBy('name')->get();
 
         return Inertia::render('Admin/Books', [
             'books' => $books,
             'categories' => $categories,
-            'filters' => [
-                'search' => $request->search,
-                'category' => $request->category,
-                'status' => $request->status,
-                'sort' => $sortColumn,
-                'direction' => $sortDirection,
-            ],
+            'filters' => $request->only(['search', 'category', 'status', 'sort', 'direction'])
         ]);
     }
 
-    public function show(Book $book): Response
+    public function show(Book $book)
     {
-        $book->load('category', 'borrows.user');
-        
+        // Load the book with its relationships
+        $book->load([
+            'category',
+            'transactions' => function($query) {
+                $query->with('borrower')
+                      ->orderBy('created_at', 'desc');
+            }
+        ]);
+
         return Inertia::render('Admin/BookShow', [
-            'book' => $book,
+            'book' => $book
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function create()
+    {
+        $categories = Category::orderBy('name')->get();
+
+        return Inertia::render('Admin/BookCreate', [
+            'categories' => $categories
+        ]);
+    }
+
+    public function edit(Book $book)
+    {
+        $categories = Category::orderBy('name')->get();
+
+        return Inertia::render('Admin/BookEdit', [
+            'book' => $book,
+            'categories' => $categories
+        ]);
+    }
+
+    public function store(Request $request)
     {
         $validated = $request->validate([
-            'title' => ['required', 'string', 'max:255'],
-            'isbn' => ['required', 'string', 'max:50', 'unique:books,isbn'],
-            'category_id' => ['required', 'exists:categories,id'],
-            'author' => ['required', 'string', 'max:255'],
-            'publisher' => ['required', 'string', 'max:255'],
-            'published_year' => ['nullable', 'integer', 'min:1000', 'max:' . date('Y')],
-            'edition' => ['nullable', 'string', 'max:100'],
-            'language' => ['nullable', 'string', 'max:50'],
-            'pages' => ['nullable', 'integer', 'min:1'],
-            'description' => ['nullable', 'string'],
-            'book_image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:2048'],
-            'total_copies' => ['required', 'integer', 'min:1'],
-            'shelf_location' => ['nullable', 'string', 'max:100'],
-            'status' => ['required', 'in:available,unavailable,archived'],
+            'book_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'title' => 'required|string|max:255',
+            'isbn' => 'required|string|unique:books,isbn',
+            'category_id' => 'required|exists:categories,id',
+            'author' => 'required|string|max:255',
+            'publisher' => 'nullable|string|max:255',
+            'published_year' => 'nullable|integer|min:1000|max:' . date('Y'),
+            'edition' => 'nullable|string|max:255',
+            'language' => 'nullable|string|max:255',
+            'pages' => 'nullable|integer|min:1',
+            'description' => 'nullable|string',
+            'total_copies' => 'required|integer|min:1',
+            'shelf_location' => 'nullable|string|max:255',
+            'status' => 'required|in:available,unavailable,archived',
         ]);
 
         // Handle image upload
@@ -96,48 +110,32 @@ class BookController extends Controller
             $validated['book_image'] = $request->file('book_image')->store('books', 'public');
         }
 
-        // Set available_copies to total_copies initially
+        // Set available copies to total copies for new books
         $validated['available_copies'] = $validated['total_copies'];
 
         Book::create($validated);
 
-        return redirect()->route('admin.books.index')
-            ->with('toast', [
-                'type' => 'success',
-                'message' => 'Book added successfully!'
-            ]);
+        return redirect()->route('admin.books.index')->with('success', 'Book added successfully!');
     }
 
-    public function edit(Book $book): Response
-    {
-        $book->load('category');
-        
-        // Get all categories for dropdown
-        $categories = Category::orderBy('name')->get();
-
-        return Inertia::render('Admin/BookEdit', [
-            'book' => $book,
-            'categories' => $categories,
-        ]);
-    }
-
-    public function update(Request $request, Book $book): RedirectResponse
+    public function update(Request $request, Book $book)
     {
         $validated = $request->validate([
-            'title' => ['required', 'string', 'max:255'],
-            'isbn' => ['required', 'string', 'max:50', 'unique:books,isbn,' . $book->id],
-            'category_id' => ['required', 'exists:categories,id'],
-            'author' => ['required', 'string', 'max:255'],
-            'publisher' => ['required', 'string', 'max:255'],
-            'published_year' => ['nullable', 'integer', 'min:1000', 'max:' . date('Y')],
-            'edition' => ['nullable', 'string', 'max:100'],
-            'language' => ['nullable', 'string', 'max:50'],
-            'pages' => ['nullable', 'integer', 'min:1'],
-            'description' => ['nullable', 'string'],
-            'book_image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:2048'],
-            'total_copies' => ['required', 'integer', 'min:1'],
-            'shelf_location' => ['nullable', 'string', 'max:100'],
-            'status' => ['required', 'in:available,unavailable,archived'],
+            'book_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'title' => 'required|string|max:255',
+            'isbn' => 'required|string|unique:books,isbn,' . $book->id,
+            'category_id' => 'required|exists:categories,id',
+            'author' => 'required|string|max:255',
+            'publisher' => 'nullable|string|max:255',
+            'published_year' => 'nullable|integer|min:1000|max:' . date('Y'),
+            'edition' => 'nullable|string|max:255',
+            'language' => 'nullable|string|max:255',
+            'pages' => 'nullable|integer|min:1',
+            'description' => 'nullable|string',
+            'total_copies' => 'required|integer|min:1',
+            'available_copies' => 'required|integer|min:0',
+            'shelf_location' => 'nullable|string|max:255',
+            'status' => 'required|in:available,unavailable,archived',
         ]);
 
         // Handle image upload
@@ -149,29 +147,16 @@ class BookController extends Controller
             $validated['book_image'] = $request->file('book_image')->store('books', 'public');
         }
 
-        // Update available_copies if total_copies changed
-        $borrowed = $book->total_copies - $book->available_copies;
-        if ($validated['total_copies'] != $book->total_copies) {
-            $validated['available_copies'] = max(0, $validated['total_copies'] - $borrowed);
-        }
-
         $book->update($validated);
 
-        return redirect()->route('admin.books.show', $book->id)
-            ->with('toast', [
-                'type' => 'success',
-                'message' => 'Book updated successfully!'
-            ]);
+        return redirect()->route('admin.books.show', $book)->with('success', 'Book updated successfully!');
     }
 
-    public function destroy(Book $book): RedirectResponse
+    public function destroy(Book $book)
     {
         // Check if book has active borrows
-        if ($book->borrows()->whereIn('status', ['borrowed', 'overdue'])->count() > 0) {
-            return back()->with('toast', [
-                'type' => 'error',
-                'message' => 'Cannot delete book with active borrows.'
-            ]);
+        if ($book->transactions()->whereIn('status', ['borrowed', 'overdue'])->exists()) {
+            return back()->withErrors(['error' => 'Cannot delete book with active borrows.']);
         }
 
         // Delete image if exists
@@ -179,13 +164,8 @@ class BookController extends Controller
             Storage::disk('public')->delete($book->book_image);
         }
 
-        $bookTitle = $book->title;
         $book->delete();
 
-        return redirect()->route('admin.books.index')
-            ->with('toast', [
-                'type' => 'success',
-                'message' => "Book '{$bookTitle}' deleted successfully!"
-            ]);
+        return redirect()->route('admin.books.index')->with('success', 'Book deleted successfully!');
     }
 }

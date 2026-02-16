@@ -36,14 +36,10 @@ class User extends Authenticatable
         ];
     }
 
-    /**
-     * Boot method to auto-generate IDs on create and update
-     */
     protected static function boot()
     {
         parent::boot();
 
-        // Generate IDs when creating a new user
         static::creating(function ($user) {
             if ($user->role === 'student' && !$user->student_id) {
                 $user->student_id = self::generateStudentId();
@@ -52,97 +48,85 @@ class User extends Authenticatable
             }
         });
 
-        // Handle role changes when updating
         static::updating(function ($user) {
-            // Check if role is being changed
             if ($user->isDirty('role')) {
                 $newRole = $user->role;
                 $oldRole = $user->getOriginal('role');
 
-                // If changing TO student and don't have student_id
                 if ($newRole === 'student' && !$user->student_id) {
                     $user->student_id = self::generateStudentId();
                 }
 
-                // If changing TO teacher and don't have teacher_id
                 if ($newRole === 'teacher' && !$user->teacher_id) {
                     $user->teacher_id = self::generateTeacherId();
                 }
 
-                // Optional: Clear IDs when changing away from role
-                // Uncomment if you want to remove IDs when role changes
-                
                 if ($oldRole === 'student' && $newRole !== 'student') {
                     $user->student_id = null;
                 }
                 if ($oldRole === 'teacher' && $newRole !== 'teacher') {
                     $user->teacher_id = null;
                 }
-                
             }
         });
     }
 
-    /**
-     * Generate unique Student ID: STD-123456 (random 6 digits)
-     */
     private static function generateStudentId(): string
     {
         do {
             $randomNumber = str_pad(rand(0, 999999), 6, '0', STR_PAD_LEFT);
             $studentId = 'STD-' . $randomNumber;
-            
             $exists = self::where('student_id', $studentId)->exists();
         } while ($exists);
-
         return $studentId;
     }
 
-    /**
-     * Generate unique Teacher ID: INST-123456 (random 6 digits)
-     */
     private static function generateTeacherId(): string
     {
         do {
             $randomNumber = str_pad(rand(0, 999999), 6, '0', STR_PAD_LEFT);
             $teacherId = 'INST-' . $randomNumber;
-            
             $exists = self::where('teacher_id', $teacherId)->exists();
         } while ($exists);
-
         return $teacherId;
     }
 
-    /**
-     * Relationship: User has many borrows
-     */
-    public function borrows()
+    // FIXED RELATIONSHIPS - Using Transaction model
+    public function transactions()
     {
-        return $this->hasMany(Borrow::class);
+        return $this->hasMany(Transaction::class, 'borrower_id');
     }
 
-    /**
-     * Get currently borrowed books
-     */
-    public function currentlyBorrowedBooks()
+    public function borrowedBooks()
     {
-        return $this->borrows()->where('status', 'borrowed');
+        return $this->hasMany(Transaction::class, 'borrower_id')
+                    ->where('status', 'borrowed')
+                    ->with('book');
     }
 
-    /**
-     * Get overdue books
-     */
     public function overdueBooks()
     {
-        return $this->borrows()->where('status', 'overdue');
+        return $this->hasMany(Transaction::class, 'borrower_id')
+                    ->where('status', 'overdue')
+                    ->with('book');
     }
 
-    /**
-     * Get borrow history
-     */
     public function borrowHistory()
     {
-        return $this->borrows()->where('status', 'returned');
+        return $this->hasMany(Transaction::class, 'borrower_id')
+                    ->where('status', 'returned')
+                    ->with('book');
+    }
+
+    // Keep these for backward compatibility if needed
+    public function borrows()
+    {
+        return $this->transactions();
+    }
+
+    public function currentlyBorrowedBooks()
+    {
+        return $this->borrowedBooks();
     }
 
     // Helper methods

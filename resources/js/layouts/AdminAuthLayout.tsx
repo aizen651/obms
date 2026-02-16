@@ -12,7 +12,7 @@ export default function AdminAuthLayout({ children, header }) {
             <AdminSidebar />
 
             {/* Main Content */}
-            <div className="flex-1 flex flex-col">
+            <div className="flex-1 flex flex-col min-w-0"> {/* Added min-w-0 - IMPORTANT FIX */}
                 {/* Header */}
                 <header className="bg-white border-b border-amber-100 shadow-sm h-20">
                     <div className="h-full px-4 sm:px-6 lg:px-8 flex items-center justify-between">
@@ -53,8 +53,10 @@ export default function AdminAuthLayout({ children, header }) {
                 </header>
 
                 {/* Main Content Area */}
-                <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-                    {children}
+                <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 sm:p-6 lg:p-8"> {/* Changed overflow */}
+                    <div className="max-w-full"> {/* Added wrapper with max-w-full */}
+                        {children}
+                    </div>
                 </main>
             </div>
         </div>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import AdminAuthLayout from '@/layouts/AdminAuthLayout';
 import CategoryCreateModal from '@/components/Admin/CategoryCreateModal';
@@ -19,6 +19,26 @@ import {
 
 export default function Categories({ categories, filters }) {
     const [search, setSearch] = useState(filters?.search || '');
+    // Add live search with debounce
+    const DEBOUNCE_DELAY = 500;
+
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            router.get('/admin/categories', {
+                search,
+                sort: filters?.sort,
+                direction: filters?.direction,
+            }, {
+                preserveState: true,
+                replace: true,
+            });
+        }, DEBOUNCE_DELAY);
+
+        return () => {
+            clearTimeout(handler);
+        };
+    }, [search]);
+    
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -26,10 +46,10 @@ export default function Categories({ categories, filters }) {
     const [categoryToDelete, setCategoryToDelete] = useState(null);
     const [isDeleting, setIsDeleting] = useState(false);
 
-    const handleSearch = (e) => {
+   {/* const handleSearch = (e) => {
         e.preventDefault();
         router.get('/admin/categories', { search }, { preserveState: true });
-    };
+    }; */}
 
     const handleSort = (column) => {
         const direction = filters?.sort === column && filters?.direction === 'asc' 
@@ -93,7 +113,7 @@ export default function Categories({ categories, filters }) {
     };
 
     return (
-        <AdminAuthLayout header="Categories">
+        <AdminAuthLayout>
             <Head title="Categories" />
 
             <div className="space-y-4">
@@ -114,10 +134,10 @@ export default function Categories({ categories, filters }) {
 
                 {/* Search & Sort Bar */}
                 <div className="bg-white rounded-xl shadow-md p-4">
-                    <form onSubmit={handleSearch} className="space-y-3">
+                   
                         {/* Search Input */}
                         <div className="relative">
-                            <input
+                           <input
                                 type="text"
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
@@ -167,7 +187,7 @@ export default function Categories({ categories, filters }) {
                                 </button>
                             )}
                         </div>
-                    </form>
+      
                 </div>
 
                 {/* Categories Grid - Mobile */}

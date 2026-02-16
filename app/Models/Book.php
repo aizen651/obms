@@ -35,7 +35,7 @@ class Book extends Model
         'available_copies' => 'integer',
     ];
     
-    // Add accessor for image URL
+    // Add accessor for image URL - IMPORTANT: This makes image_url available in JSON
     protected $appends = ['image_url'];
 
     public function getImageUrlAttribute()
@@ -55,11 +55,19 @@ class Book extends Model
     }
 
     /**
-     * Relationship: Book has many borrows
+     * Relationship: Book has many transactions
+     */
+    public function transactions()
+    {
+        return $this->hasMany(Transaction::class);
+    }
+
+    /**
+     * Keep for backward compatibility
      */
     public function borrows()
     {
-        return $this->hasMany(Borrow::class);
+        return $this->transactions();
     }
 
     /**
