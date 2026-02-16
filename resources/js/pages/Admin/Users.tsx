@@ -74,7 +74,7 @@ export default function Users({ users, filters }) {
     };
 
     return (
-        <AdminAuthLayout>
+        <AdminAuthLayout header="Users">
             <Head title="Users" />
 
             <div className="space-y-4">

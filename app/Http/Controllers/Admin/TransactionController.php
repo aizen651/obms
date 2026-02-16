@@ -149,32 +149,27 @@ class TransactionController extends Controller
     }
 
     public function update(Request $request, Transaction $transaction): RedirectResponse
-    {
-        $validated = $request->validate([
-            'status' => ['required', 'in:borrowed,returned,overdue,canceled'],
-            'date_returned' => ['nullable', 'date'],
-            'date_canceled' => ['nullable', 'date'],
-            'fees' => ['nullable', 'numeric', 'min:0'],
-            'is_lost' => ['boolean'],
-        ]);
+{
+    $validated = $request->validate([
+        'status' => 'required|in:borrowed,returned,overdue,canceled',
+        'date_returned' => 'nullable|date',
+        'date_canceled' => 'nullable|date',
+        'fees' => 'nullable|numeric|min:0',
+        'is_lost' => 'boolean',
+    ]);
 
-        $oldStatus = $transaction->status;
-        $oldQuantity = $transaction->quantity;
+    $oldStatus = $transaction->status;
 
-        $transaction->update($validated);
+    // Update transaction - fees will be null for auto-calc, or a number for manual
+    $transaction->update($validated);
 
-        // If status changed from borrowed to returned, update book copies
-        if ($oldStatus === 'borrowed' && $validated['status'] === 'returned') {
-            $transaction->book->increment('available_copies', $oldQuantity);
-        }
-
-        // If status changed from borrowed to canceled, restore book copies
-        if ($oldStatus === 'borrowed' && $validated['status'] === 'canceled') {
-            $transaction->book->increment('available_copies', $oldQuantity);
-        }
-
-        return back()->with('success', 'Transaction updated successfully!');
+    // Restore book copies if status changed to returned/canceled
+    if (in_array($oldStatus, ['borrowed', 'overdue']) && in_array($validated['status'], ['returned', 'canceled'])) {
+        $transaction->book->increment('available_copies', $transaction->quantity);
     }
+
+    return back()->with('success', 'Transaction updated successfully!');
+}
 
     public function destroy(Transaction $transaction): RedirectResponse
     {

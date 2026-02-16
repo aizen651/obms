@@ -8,7 +8,6 @@ import { Plus, Search, Filter, Trash2, BookOpen, ChevronUp, ChevronDown, Eye } f
 
 export default function Books({ books, categories, filters }) {
     const [search, setSearch] = useState(filters?.search || '');
-    
     const [categoryFilter, setCategoryFilter] = useState(filters?.category || '');
     const [statusFilter, setStatusFilter] = useState(filters?.status || '');
     const [showFilters, setShowFilters] = useState(false);
@@ -17,34 +16,24 @@ export default function Books({ books, categories, filters }) {
     const [bookToDelete, setBookToDelete] = useState(null);
     const [isDeleting, setIsDeleting] = useState(false);
     
-    // Add live search with debounce
     const DEBOUNCE_DELAY = 500;
 
     useEffect(() => {
-    const handler = setTimeout(() => {
-        router.get('/admin/books', {
-            search,
-            category: categoryFilter,
-            status: statusFilter,
-            sort: filters?.sort,
-            direction: filters?.direction,
-        }, {
-            preserveState: true,
-            replace: true,
-        });
-    }, DEBOUNCE_DELAY);
+        const handler = setTimeout(() => {
+            router.get('/admin/books', {
+                search,
+                category: categoryFilter,
+                status: statusFilter,
+                sort: filters?.sort,
+                direction: filters?.direction,
+            }, {
+                preserveState: true,
+                replace: true,
+            });
+        }, DEBOUNCE_DELAY);
 
-    return () => {
-        clearTimeout(handler);
-    };
-}, [search, categoryFilter, statusFilter]);
-
-    {/* 
-    const handleSearch = (e) => {
-        e.preventDefault();
-        router.get('/admin/books', { search, category: categoryFilter, status: statusFilter }, { preserveState: true });
-    };
-    */}
+        return () => clearTimeout(handler);
+    }, [search, categoryFilter, statusFilter]);
 
     const handleSort = (column) => {
         const direction = filters?.sort === column && filters?.direction === 'asc' ? 'desc' : 'asc';
@@ -72,13 +61,19 @@ export default function Books({ books, categories, filters }) {
         });
     };
 
-    const StatusBadge = ({ status }) => {
+    // Updated StatusBadge to use display_status
+    const StatusBadge = ({ book }) => {
+        const displayStatus = book.display_status || book.status;
         const styles = {
             available: 'bg-green-50 text-green-700 border-green-200',
             unavailable: 'bg-red-50 text-red-700 border-red-200',
             archived: 'bg-gray-50 text-gray-700 border-gray-200'
         };
-        return <span className={`px-2 py-1 rounded-md text-xs font-medium border ${styles[status]}`}>{status}</span>;
+        return (
+            <span className={`px-2 py-1 rounded-md text-xs font-medium border ${styles[displayStatus]}`}>
+                {displayStatus}
+            </span>
+        );
     };
 
     const SortButton = ({ column, children }) => (
@@ -89,7 +84,7 @@ export default function Books({ books, categories, filters }) {
     );
 
     return (
-        <AdminAuthLayout>
+        <AdminAuthLayout header="Books">
             <Head title="Books" />
 
             <div className="space-y-4">
@@ -107,41 +102,38 @@ export default function Books({ books, categories, filters }) {
 
                 {/* Search & Filters */}
                 <div className="bg-white rounded-lg shadow-sm border p-3 sm:p-4">
-                  
-                        <div className="relative">
-                            <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                           <input
-                                type="text"
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                placeholder="Search books..."
-                                className="w-full pl-10 pr-4 py-2.5 border border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-transparent outline-none"
-                            />
+                    <div className="relative">
+                        <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                        <input
+                            type="text"
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            placeholder="Search books..."
+                            className="w-full pl-10 pr-4 py-2.5 border border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-transparent outline-none"
+                        />
+                    </div>
+
+                    <button type="button" onClick={() => setShowFilters(!showFilters)} className="flex items-center gap-2 px-3 py-2 bg-gray-50 hover:bg-gray-100 rounded-lg text-sm font-medium">
+                        <Filter className="w-4 h-4" />
+                        Filters
+                        {(categoryFilter || statusFilter) && <span className="px-2 py-0.5 bg-amber-500 text-white text-xs rounded-full">{[categoryFilter, statusFilter].filter(Boolean).length}</span>}
+                    </button>
+
+                    {showFilters && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-3 border-t">
+                            <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className="px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-amber-500">
+                                <option value="">All Categories</option>
+                                {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
+                            </select>
+                            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-amber-500">
+                                <option value="">All Status</option>
+                                <option value="available">Available</option>
+                                <option value="unavailable">Unavailable</option>
+                                <option value="archived">Archived</option>
+                            </select>
+                            <button type="button" onClick={handleReset} className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium">Reset</button>
                         </div>
-
-                        <button type="button" onClick={() => setShowFilters(!showFilters)} className="flex items-center gap-2 px-3 py-2 bg-gray-50 hover:bg-gray-100 rounded-lg text-sm font-medium">
-                            <Filter className="w-4 h-4" />
-                            Filters
-                            {(categoryFilter || statusFilter) && <span className="px-2 py-0.5 bg-amber-500 text-white text-xs rounded-full">{[categoryFilter, statusFilter].filter(Boolean).length}</span>}
-                        </button>
-
-                        {showFilters && (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-3 border-t">
-                                <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className="px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-amber-500">
-                                    <option value="">All Categories</option>
-                                    {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
-                                </select>
-                                <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-amber-500">
-                                    <option value="">All Status</option>
-                                    <option value="available">Available</option>
-                                    <option value="unavailable">Unavailable</option>
-                                    <option value="archived">Archived</option>
-                                </select>
-                              
-                                <button type="button" onClick={handleReset} className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium">Reset</button>
-                            </div>
-                        )}
-                   
+                    )}
                 </div>
 
                 {/* Table Container */}
@@ -164,7 +156,7 @@ export default function Books({ books, categories, filters }) {
                                                 <h3 className="font-semibold text-gray-900 line-clamp-2 mb-1">{book.title}</h3>
                                                 <p className="text-sm text-gray-600 mb-2">{book.author}</p>
                                                 <div className="flex flex-wrap gap-2">
-                                                    <StatusBadge status={book.status} />
+                                                    <StatusBadge book={book} />
                                                     <span className="px-2 py-1 bg-blue-50 text-blue-700 border border-blue-200 rounded-md text-xs font-medium">
                                                         {book.category?.name || 'N/A'}
                                                     </span>
@@ -178,7 +170,9 @@ export default function Books({ books, categories, filters }) {
                                             </div>
                                             <div>
                                                 <span className="text-gray-500">Available:</span>
-                                                <p className="font-semibold text-gray-900">{book.available_copies}/{book.total_copies}</p>
+                                                <p className={`font-semibold ${book.available_copies > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                                    {book.available_copies}/{book.total_copies}
+                                                </p>
                                             </div>
                                         </div>
                                         <div className="flex gap-2">
@@ -240,12 +234,14 @@ export default function Books({ books, categories, filters }) {
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     <div className="text-sm">
-                                                        <span className="font-semibold text-gray-900">{book.available_copies}</span>
+                                                        <span className={`font-semibold ${book.available_copies > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                                            {book.available_copies}
+                                                        </span>
                                                         <span className="text-gray-500">/{book.total_copies}</span>
                                                     </div>
                                                 </td>
                                                 <td className="px-4 py-3">
-                                                    <StatusBadge status={book.status} />
+                                                    <StatusBadge book={book} />
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     <div className="flex items-center justify-center gap-1">

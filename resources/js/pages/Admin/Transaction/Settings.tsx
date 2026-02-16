@@ -83,17 +83,17 @@ export default function Settings({ lateFeeConfig }) {
                             </div>
                         </div>
                         <button
-                            onClick={() => setEnabled(!enabled)}
-                            className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${
-                                enabled ? 'bg-amber-500' : 'bg-gray-300'
-                            }`}
-                        >
-                            <span
-                                className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform ${
-                                    enabled ? 'translate-x-7' : 'translate-x-1'
-                                }`}
-                            />
-                        </button>
+    onClick={() => setEnabled(!enabled)}
+    className={`relative w-14 h-7 rounded-full overflow-hidden flex-shrink-0 transition-colors duration-300
+        ${enabled ? 'bg-amber-500' : 'bg-gray-300'}
+    `}
+>
+    <span
+        className={`absolute top-1 left-1 w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-300
+            ${enabled ? 'translate-x-7' : ''}
+        `}
+    />
+</button>
                     </div>
 
                     {/* Fee Rate */}

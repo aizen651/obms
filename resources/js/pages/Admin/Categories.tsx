@@ -113,7 +113,7 @@ export default function Categories({ categories, filters }) {
     };
 
     return (
-        <AdminAuthLayout>
+        <AdminAuthLayout header="Category">
             <Head title="Categories" />
 
             <div className="space-y-4">

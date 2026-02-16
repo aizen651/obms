@@ -35,8 +35,25 @@ class Book extends Model
         'available_copies' => 'integer',
     ];
     
-    // Add accessor for image URL - IMPORTANT: This makes image_url available in JSON
-    protected $appends = ['image_url'];
+    protected $appends = ['image_url', 'display_status'];
+
+    // Boot method to add automatic status update
+    protected static function boot()
+    {
+        parent::boot();
+
+        // Automatically update status when available_copies changes
+        static::saving(function ($book) {
+            // If book is not archived, auto-manage status based on available copies
+            if ($book->status !== 'archived') {
+                if ($book->available_copies <= 0) {
+                    $book->status = 'unavailable';
+                } else {
+                    $book->status = 'available';
+                }
+            }
+        });
+    }
 
     public function getImageUrlAttribute()
     {
@@ -46,52 +63,47 @@ class Book extends Model
         return null;
     }
 
-    /**
-     * Relationship: Book belongs to a category
-     */
+    // Computed status that always reflects actual availability
+    public function getDisplayStatusAttribute()
+    {
+        // If archived, show archived
+        if ($this->status === 'archived') {
+            return 'archived';
+        }
+        
+        // Otherwise, base on available copies
+        return $this->available_copies > 0 ? 'available' : 'unavailable';
+    }
+
     public function category()
     {
         return $this->belongsTo(Category::class);
     }
 
-    /**
-     * Relationship: Book has many transactions
-     */
     public function transactions()
     {
         return $this->hasMany(Transaction::class);
     }
 
-    /**
-     * Keep for backward compatibility
-     */
     public function borrows()
     {
         return $this->transactions();
     }
 
-    /**
-     * Get currently borrowed count
-     */
     public function getBorrowedCountAttribute()
     {
         return $this->total_copies - $this->available_copies;
     }
 
-    /**
-     * Check if book is available for borrowing
-     */
     public function isAvailable(): bool
     {
-        return $this->status === 'available' && $this->available_copies > 0;
+        return $this->status !== 'archived' && $this->available_copies > 0;
     }
 
-    /**
-     * Get status badge color
-     */
     public function getStatusColorAttribute(): string
     {
-        return match($this->status) {
+        $displayStatus = $this->display_status;
+        return match($displayStatus) {
             'available' => 'green',
             'unavailable' => 'red',
             'archived' => 'gray',

@@ -31,7 +31,8 @@ import {
     CheckCircle2,
     XCircle,
     Clock,
-    Printer
+    Printer,
+    Settings
 } from 'lucide-react';
 
 export default function Transactions({ transactions, books, users, lateFeeConfig, filters }) {
@@ -156,7 +157,7 @@ export default function Transactions({ transactions, books, users, lateFeeConfig
     };
 
     return (
-        <AdminAuthLayout>
+        <AdminAuthLayout header="Transactions">
             <Head title="Transactions" />
 
             <div className="space-y-4">
@@ -175,7 +176,6 @@ export default function Transactions({ transactions, books, users, lateFeeConfig
             <Printer className="w-5 h-5" />
             Print Report
         </Link>
-        
         <button
             onClick={() => setIsCreateModalOpen(true)}
             className="px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-medium rounded-lg transition-all shadow-md flex items-center justify-center gap-2"
@@ -184,6 +184,8 @@ export default function Transactions({ transactions, books, users, lateFeeConfig
             New Transaction
         </button>
         </div>
+        
+        
                 </div>
 
                 {/* Search & Filter Bar */}
@@ -258,6 +260,11 @@ export default function Transactions({ transactions, books, users, lateFeeConfig
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
+                        <Link
+                        href="/admin/settings"
+                        className="px-4 py-2 bg-gradient-to-r from-slate-500 to-gray-500 hover:from-slate-600 hover:to-gray-600 text-white font-medium rounded-lg transition-all shadow-md flex items-center justify-center gap-2"><Settings className='h-5 w-5'/>
+                        Payment settings
+                        </Link>
                     </div>
                 </div>
 

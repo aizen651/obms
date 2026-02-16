@@ -15,7 +15,6 @@ class BookController extends Controller
     {
         $query = Book::with('category');
 
-        // Search filter
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
@@ -26,17 +25,14 @@ class BookController extends Controller
             });
         }
 
-        // Category filter
         if ($request->filled('category')) {
             $query->where('category_id', $request->category);
         }
 
-        // Status filter
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
 
-        // Sorting
         $sortColumn = $request->get('sort', 'created_at');
         $sortDirection = $request->get('direction', 'desc');
         $query->orderBy($sortColumn, $sortDirection);
@@ -53,7 +49,6 @@ class BookController extends Controller
 
     public function show(Book $book)
     {
-        // Load the book with its relationships
         $book->load([
             'category',
             'transactions' => function($query) {
@@ -105,14 +100,13 @@ class BookController extends Controller
             'status' => 'required|in:available,unavailable,archived',
         ]);
 
-        // Handle image upload
         if ($request->hasFile('book_image')) {
             $validated['book_image'] = $request->file('book_image')->store('books', 'public');
         }
 
-        // Set available copies to total copies for new books
         $validated['available_copies'] = $validated['total_copies'];
 
+        // Status will be auto-set by the model observer based on available_copies
         Book::create($validated);
 
         return redirect()->route('admin.books.index')->with('success', 'Book added successfully!');
@@ -133,33 +127,41 @@ class BookController extends Controller
             'pages' => 'nullable|integer|min:1',
             'description' => 'nullable|string',
             'total_copies' => 'required|integer|min:1',
-            'available_copies' => 'required|integer|min:0',
+            'available_copies' => 'required|integer|min:0|lte:total_copies',
             'shelf_location' => 'nullable|string|max:255',
             'status' => 'required|in:available,unavailable,archived',
         ]);
 
-        // Handle image upload
         if ($request->hasFile('book_image')) {
-            // Delete old image if exists
             if ($book->book_image) {
                 Storage::disk('public')->delete($book->book_image);
             }
             $validated['book_image'] = $request->file('book_image')->store('books', 'public');
+        } else {
+            $validated['book_image'] = $book->book_image;
         }
 
-        $book->update($validated);
+        // Don't override status if it's archived - admin choice
+        // For available/unavailable, the observer will handle it
+        if ($book->status !== 'archived' || $validated['status'] === 'archived') {
+            $book->update($validated);
+        } else {
+            // If book is archived, keep it archived unless explicitly changed
+            unset($validated['status']);
+            $book->update($validated);
+        }
 
-        return redirect()->route('admin.books.show', $book)->with('success', 'Book updated successfully!');
+        return redirect()
+            ->route('admin.books.show', $book)
+            ->with('success', 'Book updated successfully!');
     }
 
     public function destroy(Book $book)
     {
-        // Check if book has active borrows
         if ($book->transactions()->whereIn('status', ['borrowed', 'overdue'])->exists()) {
             return back()->withErrors(['error' => 'Cannot delete book with active borrows.']);
         }
 
-        // Delete image if exists
         if ($book->book_image) {
             Storage::disk('public')->delete($book->book_image);
         }

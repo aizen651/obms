@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\BookController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\ExportController;
 use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\TransactionController;
@@ -47,6 +48,13 @@ Route::prefix('admin')->name('admin.')->group(function () {
   // Transaction Setting
   Route::get('/settings', [SettingController::class, 'index'])->name('settings.index');
     Route::post('/settings/late-fees', [SettingController::class, 'updateLateFees'])->name('settings.late-fees');
+  
+  // Export Database
+  Route::get('/export', [App\Http\Controllers\Admin\ExportController::class, 'index'])->name('admin.export');
+    Route::get('/export/users', [App\Http\Controllers\Admin\ExportController::class, 'exportUsers'])->name('admin.export.users');
+    Route::get('/export/books', [App\Http\Controllers\Admin\ExportController::class, 'exportBooks'])->name('admin.export.books');
+    Route::get('/export/transactions', [App\Http\Controllers\Admin\ExportController::class, 'exportTransactions'])->name('admin.export.transactions');
+    Route::get('/export/all', [App\Http\Controllers\Admin\ExportController::class, 'exportAll'])->name('admin.export.all');
         
         Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     });

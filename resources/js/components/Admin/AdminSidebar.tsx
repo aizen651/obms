@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Link, usePage } from '@inertiajs/react';
-import { Settings } from 'lucide-react';
 
 export default function AdminSidebar() {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -61,13 +60,7 @@ export default function AdminSidebar() {
                 </svg>
             ),
         },
-        {
-            name: 'Fee Settings',
-            href: '/admin/settings',
-            icon: (
-              <Settings className="w-5 h-5" />
-            ),
-        },
+  
     ];
 
     const isActive = (href) => url.startsWith(href);
