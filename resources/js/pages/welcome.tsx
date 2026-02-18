@@ -6,16 +6,9 @@ import {
   BookOpen, Repeat, CreditCard, LayoutDashboard,
 } from "lucide-react"
 
-const NAV = ["Home", "Books", "Borrow", "Transactions", "Journal", "Magazine", "E-Book"]
+const NAV = ["Home", "Books", "Journal", "Magazine", "E-Book"]
 
-const TILES = [
-  { Icon: Library,         label: "My Books" },
-  { Icon: Repeat,          label: "Borrow" },
-  { Icon: CreditCard,      label: "Transactions" },
-  { Icon: Newspaper,       label: "Journal" },
-  { Icon: LayoutDashboard, label: "Magazines" },
-  { Icon: BookOpen,        label: "E-Books" },
-]
+
 
 const CARDS = [
   { title: "Journals",  desc: "Access academic journals and research papers", btn: "Browse Journals" },
@@ -52,8 +45,9 @@ export default function Landing() {
 
       <div className="flex flex-col min-h-screen w-full bg-[#032e26] text-white selection:bg-emerald-500 overflow-x-hidden">
 
-        {/* Navbar */}
-        <header className="absolute top-0 z-[110] w-full px-4 sm:px-12 py-6">
+        {/* NAVBAR */ }
+       
+        <header className="fixed top-0 z-[110] w-full px-4 sm:px-12 py-6">
           <div className="max-w-7xl mx-auto flex items-center justify-between">
 
             {/* Logo */}
@@ -67,13 +61,13 @@ export default function Landing() {
             {/* Desktop Nav */}
             <nav className="hidden lg:flex items-center gap-6 bg-black/20 backdrop-blur-md px-6 py-2 rounded-full border border-white/10">
               {NAV.map((n) => (
-                <a
+                <Link
                   key={n}
                   href="#"
                   className={`text-xs font-medium transition-colors ${n === "Home" ? "text-emerald-400" : "text-gray-300 hover:text-white"}`}
                 >
                   {n}
-                </a>
+                </Link>
               ))}
             </nav>
 
@@ -95,25 +89,25 @@ export default function Landing() {
           </div>
         </header>
 
-        {/* MOBILE MENU */}
-       
+        {/* ══ MOBILE MENU — */}
         <div
           className={`md:hidden fixed inset-0 bg-[#032e26] z-[100]
             transition-transform duration-500 ease-in-out
             ${open ? "translate-y-0 pointer-events-auto" : "-translate-y-full pointer-events-none"}`}
         >
+          
           <div className="flex flex-col items-center justify-start h-full gap-6 pt-28 px-8">
 
             {/* Nav links */}
             {NAV.map((n) => (
-              <a
+              <Link
                 key={n}
                 href="#"
                 onClick={() => setOpen(false)}
                 className={`text-2xl font-bold transition-colors ${n === "Home" ? "text-emerald-400" : "hover:text-emerald-400"}`}
               >
                 {n}
-              </a>
+              </Link>
             ))}
 
             {/* Divider */}
@@ -145,10 +139,8 @@ export default function Landing() {
           <div
             className="absolute inset-0 bg-cover bg-center transition-transform duration-1000 hover:scale-105"
             style={{ backgroundImage: "url('/img/library.jpg')" }}
-          >
-            {/* Overlay */}
-               <div className="absolute inset-0 bg-black/50"></div>
-            </div>
+            
+          />
           <div className="absolute inset-0 bg-gradient-to-b from-[#032e26]/80 via-transparent to-[#032e26]" />
           <div className="absolute inset-0 bg-emerald-900/30 mix-blend-multiply" />
 
@@ -160,9 +152,11 @@ export default function Landing() {
               "Discover, Borrow, and Enjoy Your Favorite Books!"
             </p>
             <div className="flex gap-4 justify-center">
-              <button className="px-8 py-3 bg-emerald-500 text-white rounded-lg font-bold hover:bg-emerald-400 transition-all hover:scale-105 active:scale-95 shadow-xl shadow-emerald-900/50">
+              <Link
+              href={route('books')}
+              className="px-8 py-3 bg-emerald-500 text-white rounded-lg font-bold hover:bg-emerald-400 transition-all hover:scale-105 active:scale-95 shadow-xl shadow-emerald-900/50">
                 Explore Books
-              </button>
+              </Link>
               <button className="px-8 py-3 bg-emerald-700/80 backdrop-blur-sm text-white rounded-lg font-bold hover:bg-emerald-600 transition-all hover:scale-105 active:scale-95 border border-white/10">
                 Get Started
               </button>
@@ -179,21 +173,7 @@ export default function Landing() {
         </section>
 
         {/* ══ THE ICON TILES ═════════════════════════════════════════ */}
-        <section className="relative z-30 -mt-16 px-4 sm:px-12">
-          <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {TILES.map(({ Icon, label }) => (
-              <div
-                key={label}
-                className="group bg-[#0a4d3e]/80 backdrop-blur-md border border-white/10 p-6 rounded-2xl flex flex-col items-center gap-3 hover:bg-emerald-500 transition-all duration-300 cursor-pointer hover:-translate-y-2 shadow-xl shadow-black/20"
-              >
-                <div className="bg-emerald-900/50 p-3 rounded-xl group-hover:bg-white/20 transition-colors">
-                  <Icon size={24} className="text-emerald-400 group-hover:text-white" />
-                </div>
-                <span className="text-sm font-bold tracking-wide group-hover:text-white">{label}</span>
-              </div>
-            ))}
-          </div>
-        </section>
+     
 
         {/* ══ FEATURE CARDS ══════════════════════════════════════════ */}
         <section className="px-4 sm:px-12 py-20">
@@ -216,13 +196,7 @@ export default function Landing() {
           </div>
         </section>
 
-        {/* ══ STICKY CHAT ════════════════════════════════════════════ */}
-        {/* z-[90]: below mobile menu overlay (z-100) so it doesn't bleed through */}
-        <button className="fixed bottom-8 right-8 z-[90] bg-[#0d5a49] hover:bg-emerald-500 text-white px-6 py-3 rounded-full flex items-center gap-3 shadow-2xl shadow-black transition-all hover:scale-105 border border-white/10">
-          <MessageCircle size={20} />
-          <span className="font-bold text-sm">Chat with Us</span>
-        </button>
-
+      
       </div>
     </>
   )

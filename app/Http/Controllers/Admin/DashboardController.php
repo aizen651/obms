@@ -23,7 +23,7 @@ class DashboardController extends Controller
         $totalAdmins = User::where('role', 'admin')->count();
 
         // Book Statistics
-        $totalBooks = Book::sum('copies');
+        $totalBooks = Book::sum('total_copies');
         $totalBorrowed = Transaction::where('status', 'borrowed')->count();
         $totalReturned = Transaction::where('status', 'returned')->count();
         $totalCancelled = Transaction::where('status', 'canceled')->count();

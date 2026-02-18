@@ -29,9 +29,9 @@ class BookController extends Controller
             $query->where('category_id', $request->category);
         }
 
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
+         if ($request->filled('status')) {
+    $query->status($request->status);
+      }
 
         $sortColumn = $request->get('sort', 'created_at');
         $sortDirection = $request->get('direction', 'desc');

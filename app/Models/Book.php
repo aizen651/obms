@@ -110,4 +110,16 @@ class Book extends Model
             default => 'gray',
         };
     }
+    
+    public function scopeStatus($query, $status)
+{
+    if ($status === 'available') {
+        return $query->where('available_copies', '>', 0)->where('status', '!=', 'archived');
+    } elseif ($status === 'unavailable') {
+        return $query->where('available_copies', 0)->where('status', '!=', 'archived');
+    } elseif ($status === 'archived') {
+        return $query->where('status', 'archived');
+    }
+    return $query;
+}
 }

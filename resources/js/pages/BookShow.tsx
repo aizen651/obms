@@ -1,7 +1,5 @@
-import React, { useState } from 'react';
+import GuestLayout from "@/layouts/GuestLayout"
 import { Head, Link, router } from '@inertiajs/react';
-import AdminAuthLayout from '@/layouts/AdminAuthLayout';
-import DeleteConfirmationModal from '@/components/Admin/DeleteConfirmationModal';
 import { 
     ArrowLeft, 
     BookOpen, 
@@ -13,18 +11,13 @@ import {
     FileText, 
     MapPin,
     Copy,
-    Edit,
-    Trash2,
     CheckCircle,
     XCircle,
     Archive
 } from 'lucide-react';
 
 export default function BookShow({ book }) {
-    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-    const [isDeleting, setIsDeleting] = useState(false);
-
-    const getStatusConfig = (availableCopies = 0) => {
+  const getStatusConfig = (availableCopies = 0) => {
         const configs = {
             available: { 
                 icon: CheckCircle, 
@@ -51,75 +44,40 @@ export default function BookShow({ book }) {
         return availableCopies > 0 ?
         configs.available : configs.unavailable;
     };
-
-    const handleDeleteClick = () => {
-        setIsDeleteModalOpen(true);
-    };
-
-    const handleDeleteConfirm = () => {
-        setIsDeleting(true);
-        router.delete(route('admin.books.destroy', book.id), {
-            preserveScroll: true,
-            onSuccess: () => {
-                setIsDeleteModalOpen(false);
-                setIsDeleting(false);
-            },
-            onError: () => {
-                setIsDeleting(false);
-            }
-        });
-    };
-
-    const statusConfig = getStatusConfig(book.available_copies);
+   const statusConfig = getStatusConfig(book.available_copies);
     const StatusIcon = statusConfig.icon;
 
     const InfoItem = ({ icon: Icon, label, value }) => (
         <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
-                <Icon className="w-5 h-5 text-amber-600" />
+            <div className="w-10 h-10 rounded-lg bg-emerald-800 flex items-center justify-center flex-shrink-0">
+                <Icon className="w-5 h-5 text-white" />
             </div>
             <div className="flex-1 min-w-0">
                 <p className="text-sm text-gray-500">{label}</p>
                 <p className="font-semibold text-gray-900">{value || 'N/A'}</p>
             </div>
         </div>
-    );
-
-    return (
-        <AdminAuthLayout header="Book Details">
-            <Head title={`${book.title} - Book Details`} />
-
-            <div className="space-y-6">
-                {/* Header */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <Link
-                        href={route('admin.books.index')}
-                        className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 font-medium transition"
-                    >
-                        <ArrowLeft className="w-5 h-5" />
-                        Back to Books
-                    </Link>
-                    <div className="flex gap-2">
-                        <Link
-                            href={route('admin.books.edit', book.id)}
-                            className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-medium rounded-lg transition"
-                        >
-                            <Edit className="w-4 h-4" />
-                            Edit
-                        </Link>
-                        <button
-                            onClick={handleDeleteClick}
-                            type="button"
-                            className="inline-flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-medium rounded-lg transition"
-                        >
-                            <Trash2 className="w-4 h-4" />
-                            Delete
-                        </button>
-                    </div>
-                </div>
-
-                {/* Main Content */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    ); 
+    
+  return (
+    <>
+      <GuestLayout>
+      <Head title="Book Details" />
+      
+      <div className="space-y-6 pt-16">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <Link
+            href={route('books')}
+            className="inline-flex items-center gap-2 text-white hover:text-gray-900 font-medium transition"
+          >
+            <ArrowLeft className="w-5 h-5" />
+                Back to Books
+            </Link>
+            
+        </div>
+        {/* Main Content */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* Left Column - Book Cover & Status */}
                     <div className="lg:col-span-1 space-y-4">
                       {/* Book Cover */}
@@ -131,7 +89,7 @@ export default function BookShow({ book }) {
                                     className="w-full aspect-[2/3] object-cover rounded-lg shadow-lg"
                                 />
                             ) : (
-                                <div className="w-full aspect-[2/3] rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white shadow-lg">
+                                <div className="w-full aspect-[2/3] rounded-lg bg-gradient-to-br from-emerald-400 to-green-500 flex items-center justify-center text-white shadow-lg">
                                     <BookOpen className="w-24 h-24" />
                                 </div>
                             )}
@@ -152,13 +110,13 @@ export default function BookShow({ book }) {
                             <div className="mt-4 pt-4 border-t">
                                 <div className="flex items-center justify-between mb-2">
                                     <span className="text-sm text-gray-600">Available Copies</span>
-                                    <span className="text-2xl font-bold text-amber-600">
+                                    <span className="text-2xl font-bold text-emerald-600">
                                         {book.available_copies}/{book.total_copies}
                                     </span>
                                 </div>
                                 <div className="w-full bg-gray-200 rounded-full h-2.5">
                                     <div 
-                                        className="bg-amber-500 h-2.5 rounded-full" 
+                                        className="bg-emerald-500 h-2.5 rounded-full" 
                                         style={{ width: `${(book.available_copies / book.total_copies) * 100}%` }}
                                     ></div>
                                 </div>
@@ -237,16 +195,8 @@ export default function BookShow({ book }) {
                         )}
                     </div>
                 </div>
-            </div>
-
-            {/* Delete Confirmation Modal */}
-            <DeleteConfirmationModal
-                isOpen={isDeleteModalOpen}
-                onClose={() => setIsDeleteModalOpen(false)}
-                onConfirm={handleDeleteConfirm}
-                userName={book.title}
-                isDeleting={isDeleting}
-            />
-        </AdminAuthLayout>
-    );
+        </div>
+      </GuestLayout>
+    </>
+    )
 }
