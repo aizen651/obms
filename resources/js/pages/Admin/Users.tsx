@@ -207,8 +207,9 @@ export default function Users({ users, filters }) {
                                         <td colSpan="6" className="px-4 py-12 text-center">
                                             <UsersIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                                             <p className="text-gray-500 font-medium">No users found</p>
-                                        </td>
-                                    </tr>
+                
+                         </td>
+                      </tr>
                                 )}
                             </tbody>
                         </table>

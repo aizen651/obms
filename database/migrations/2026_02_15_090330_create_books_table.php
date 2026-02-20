@@ -28,7 +28,7 @@ return new class extends Migration
     $table->integer('available_copies');
     $table->string('shelf_location', 100)->nullable();
     $table->enum('status', ['available', 'unavailable', 'archived'])->default('available');
-    $table->timestamps();
+            $table->timestamps();
         });
     }
 

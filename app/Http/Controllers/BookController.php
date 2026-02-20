@@ -53,65 +53,43 @@ class BookController extends Controller
 
     private function applySorting($query, Request $request)
     {
-        $allowedColumns = [
-            'title', 'author', 'category.name',
-            'published_year', 'available_copies', 'display_status',
-        ];
-
         $sortColumn = $request->get('sort', 'title');
-        $sortDirection = in_array(strtolower($request->get('direction', 'asc')), ['asc', 'desc'])
-            ? strtolower($request->get('direction', 'asc'))
+        $direction = in_array($request->get('direction'), ['asc', 'desc']) 
+            ? $request->get('direction') 
             : 'asc';
-
-        if (!in_array($sortColumn, $allowedColumns)) {
-            $sortColumn = 'title';
-        }
-
-        $dir = strtoupper($sortDirection); // ASC or DESC — safe for raw use
-
-        // Detect the database driver to use the correct case-sensitive collation
-        $driver = DB::getDriverName(); // 'sqlite' or 'mysql'
-
-        if ($sortColumn === 'category.name') {
-            $query->join('categories', 'books.category_id', '=', 'categories.id')
-                  ->select('books.*');
-
-            if ($driver === 'sqlite') {
-                // SQLite: COLLATE BINARY for case-sensitive sort (A-Z before a-z)
-                $query->orderByRaw("categories.name COLLATE BINARY $dir");
-            } else {
-                // MySQL: use BINARY keyword
-                $query->orderByRaw("BINARY categories.name $dir");
-            }
-
-        } elseif ($sortColumn === 'published_year') {
-            // Numeric sort — lowest to highest on first click (asc)
-            if ($driver === 'sqlite') {
-                $query->orderByRaw("CAST(published_year AS INTEGER) $dir");
-            } else {
-                $query->orderByRaw("CAST(published_year AS UNSIGNED) $dir");
-            }
-
-        } elseif ($sortColumn === 'available_copies') {
-            $query->orderBy('available_copies', $sortDirection);
-
-        } elseif ($sortColumn === 'display_status') {
-            // Sort by computed display status: available → unavailable → archived
-            $query->orderByRaw("
-                CASE
-                    WHEN status = 'archived'   THEN 3
-                    WHEN available_copies > 0  THEN 1
-                    ELSE                            2
-                END $dir
-            ");
-
-        } else {
-            // title, author — case-sensitive sort
-            if ($driver === 'sqlite') {
-                $query->orderByRaw("{$sortColumn} COLLATE BINARY $dir");
-            } else {
-                $query->orderByRaw("BINARY `{$sortColumn}` $dir");
-            }
+        
+        switch ($sortColumn) {
+            case 'category.name':
+                $query->join('categories', 'books.category_id', '=', 'categories.id')
+                      ->select('books.*')
+                      ->orderBy(DB::raw('LOWER(categories.name)'), $direction);
+                break;
+                
+            case 'published_year':
+                $query->orderBy('published_year', $direction);
+                break;
+                
+            case 'available_copies':
+                $query->orderBy('available_copies', $direction);
+                break;
+                
+            case 'display_status':
+                $query->orderByRaw("
+                    CASE
+                        WHEN status = 'archived' THEN 3
+                        WHEN available_copies > 0 THEN 1
+                        ELSE 2
+                    END {$direction}
+                ");
+                break;
+                
+            case 'title':
+            case 'author':
+                $query->orderBy(DB::raw("LOWER({$sortColumn})"), $direction);
+                break;
+                
+            default:
+                $query->orderBy(DB::raw('LOWER(title)'), $direction);
         }
     }
 

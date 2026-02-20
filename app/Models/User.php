@@ -22,6 +22,8 @@ class User extends Authenticatable
         'student_id',
         'teacher_id',
     ];
+    
+    protected $appends = ['member_id'];
 
     protected $hidden = [
         'password',
