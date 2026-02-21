@@ -3,7 +3,9 @@ import { Head, router, usePage } from '@inertiajs/react'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Search, Filter, BookMarked, BookOpen, ChevronUp, ChevronDown, ChevronsUpDown, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Link } from '@inertiajs/react';
+import { toast } from 'sonner';
 import Layout from '@/layouts/Layout';
+import BorrowModal from '@/components/BorrowModal';
 
 const btn = 'min-w-[32px] h-8 px-2 rounded text-sm font-medium flex items-center justify-center transition-colors select-none';
 
@@ -80,7 +82,7 @@ const COLS = [
     { key: "display_status",   label: "Status" },
 ];
 
-export default function Books({ books, categories, filters }) {
+export default function Books({ books, categories, filters, borrowedBookIds = [] }) {
 
     const { auth } = usePage().props
 
@@ -88,6 +90,19 @@ export default function Books({ books, categories, filters }) {
     const [categoryFilter, setCategoryFilter] = useState(filters?.category || '');
     const [statusFilter,   setStatusFilter]   = useState(filters?.status   || '');
     const [sort,           setSort]           = useState({ col: filters?.sort || 'title', dir: filters?.direction || 'asc' });
+
+    // ── Borrow modal state ──────────────────────────────────
+    const [borrowModal, setBorrowModal] = useState({ open: false, book: null });
+
+    const handleBorrowClick = (book) => {
+        if (borrowedBookIds.includes(book.id)) {
+            toast.error('You already have an active borrow for this book.', {
+                description: book.title,
+            });
+            return;
+        }
+        setBorrowModal({ open: true, book });
+    };
 
     useEffect(() => {
         const handler = setTimeout(() => {
@@ -124,7 +139,7 @@ export default function Books({ books, categories, filters }) {
                 <div className="absolute inset-0 bg-gradient-to-b from-white/8 via-white/5 to-white/3 pointer-events-none" />
 
                 {/* Search / Filter bar */}
-                <div className="relative flex items-center gap-3 bg-black/20 border-b border-white/8 px-4 py-3">
+                <div className="relative flex items-center justify-center gap-3 bg-black/20 border-b border-white/8 px-4 py-3">
                     <div className="relative flex-1 max-w-xs">
                         <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
                         <input
@@ -202,7 +217,7 @@ export default function Books({ books, categories, filters }) {
                                     <td className="px-3 py-3">
                                         <div className="flex items-center justify-center gap-1.5">
 
-                                            {/* View — always visible, clean white pill */}
+                                            {/* View */}
                                             <Link
                                                 href={`/books/${book.id}`}
                                                 className="group flex items-center gap-1.5 h-7 pl-2 pr-3 rounded-full bg-white/10 hover:bg-white text-white/60 hover:text-zinc-900 border border-white/10 hover:border-transparent transition-all duration-200 hover:shadow-md hover:shadow-white/10 active:scale-95"
@@ -211,23 +226,21 @@ export default function Books({ books, categories, filters }) {
                                                 <span className="text-[10px] font-semibold">View</span>
                                             </Link>
 
-                                            {/* Borrow — only for auth users */}
+                                            {/* Borrow — opens BorrowModal */}
                                             {auth?.user && (
                                                 book.available_copies > 0 ? (
-                                                    <Link
-                                                        href={`/borrow/${book.id}`}
+                                                    <button
+                                                        onClick={() => handleBorrowClick(book)}
                                                         className="group relative flex items-center gap-1.5 h-7 pl-2 pr-3 rounded-full bg-emerald-500/20 hover:bg-emerald-500 text-emerald-300 hover:text-white border border-emerald-500/30 hover:border-transparent transition-all duration-200 hover:shadow-md hover:shadow-emerald-500/20 active:scale-95 overflow-hidden"
                                                     >
-                                                        {/* Subtle pulse dot indicator */}
                                                         <span className="relative flex h-1.5 w-1.5 flex-shrink-0">
                                                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
                                                             <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-400" />
                                                         </span>
                                                         <BookMarked size={11} className="flex-shrink-0" />
                                                         <span className="text-[10px] font-semibold">Borrow</span>
-                                                    </Link>
+                                                    </button>
                                                 ) : (
-                                                    /* Unavailable — muted, disabled look */
                                                     <span className="flex items-center gap-1.5 h-7 pl-2 pr-3 rounded-full bg-white/4 text-white/20 border border-white/6 cursor-not-allowed">
                                                         <BookMarked size={11} className="flex-shrink-0" />
                                                         <span className="text-[10px] font-semibold">Unavailable</span>
@@ -257,6 +270,15 @@ export default function Books({ books, categories, filters }) {
             {books.data.length > 0 && books.last_page > 1 && (
                 <Pagination books={books} search={search} categoryFilter={categoryFilter} statusFilter={statusFilter} sort={sort} />
             )}
+
+            {/* ── BorrowModal ── */}
+            <BorrowModal
+                book={borrowModal.book}
+                isOpen={borrowModal.open}
+                onClose={() => setBorrowModal({ open: false, book: null })}
+                auth={auth}
+            />
+
         </Layout>
     );
 }

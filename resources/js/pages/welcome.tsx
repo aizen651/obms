@@ -27,11 +27,12 @@ export default function Landing() {
                         onMouseEnter={() => setHovered(true)}
                         onMouseLeave={() => setHovered(false)}
                         style={{
-                            backgroundImage: "url('/img/library.jpg')",
+                            backgroundImage: "url('/img/bg.jpg')",
                             transform:  hovered ? "scale(1.04) translateZ(0)" : "scale(1) translateZ(0)",
                             transition: "transform 600ms ease-out",
                             willChange: "transform",
                         }}
+                        
                         className="absolute inset-0 bg-cover bg-center opacity-20"
                     />
 

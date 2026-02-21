@@ -12,7 +12,7 @@ class Transaction extends Model
     protected $fillable = [
         'ref_nbr', 'book_id', 'borrower_id', 'quantity',
         'date_borrowed', 'expected_return_date', 'date_returned', 'date_canceled',
-        'fees', 'status', 'is_lost', 'transaction_date',
+        'fees', 'status', 'is_lost', 'transaction_date', 'notes',
     ];
 
     protected $casts = [

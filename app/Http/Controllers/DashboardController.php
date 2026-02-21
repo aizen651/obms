@@ -32,14 +32,14 @@ class DashboardController extends Controller
         ];
 
         $currentBorrows = $user->transactions()
-            ->with('book:id,title,author,image_url')
+            ->with('book:id,title,author,book_image')
             ->whereIn('status', ['borrowed', 'overdue'])
             ->latest()
             ->take(5)
             ->get();
 
         $recentHistory = $user->transactions()
-            ->with('book:id,title,author,image_url')
+            ->with('book:id,title,author,book_image')
             ->where('status', 'returned')
             ->latest()
             ->take(5)

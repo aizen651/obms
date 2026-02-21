@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Models\Book;
 use App\Models\Category;
+use App\Models\Transaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -18,13 +19,22 @@ class BookController extends Controller
         $this->applyFilters($query, $request);
         $this->applySorting($query, $request);
 
-        $books = $query->paginate(10)->withQueryString();
+        $books      = $query->paginate(10)->withQueryString();
         $categories = Category::orderBy('name')->get();
 
+        // IDs of books the current user has actively borrowed
+        $borrowedBookIds = auth()->check()
+            ? Transaction::where('borrower_id', auth()->id())
+                ->whereIn('status', ['borrowed', 'overdue'])
+                ->pluck('book_id')
+                ->toArray()
+            : [];
+
         return Inertia::render('Books', [
-            'books'      => $books,
-            'categories' => $categories,
-            'filters'    => $request->only(['search', 'category', 'status', 'sort', 'direction']),
+            'books'           => $books,
+            'categories'      => $categories,
+            'filters'         => $request->only(['search', 'category', 'status', 'sort', 'direction']),
+            'borrowedBookIds' => $borrowedBookIds,
         ]);
     }
 
@@ -54,25 +64,22 @@ class BookController extends Controller
     private function applySorting($query, Request $request)
     {
         $sortColumn = $request->get('sort', 'title');
-        $direction = in_array($request->get('direction'), ['asc', 'desc']) 
-            ? $request->get('direction') 
+        $direction  = in_array($request->get('direction'), ['asc', 'desc'])
+            ? $request->get('direction')
             : 'asc';
-        
+
         switch ($sortColumn) {
             case 'category.name':
                 $query->join('categories', 'books.category_id', '=', 'categories.id')
                       ->select('books.*')
                       ->orderBy(DB::raw('LOWER(categories.name)'), $direction);
                 break;
-                
             case 'published_year':
                 $query->orderBy('published_year', $direction);
                 break;
-                
             case 'available_copies':
                 $query->orderBy('available_copies', $direction);
                 break;
-                
             case 'display_status':
                 $query->orderByRaw("
                     CASE
@@ -82,14 +89,12 @@ class BookController extends Controller
                     END {$direction}
                 ");
                 break;
-                
             case 'title':
             case 'author':
                 $query->orderBy(DB::raw("LOWER({$sortColumn})"), $direction);
                 break;
-                
             default:
-                $query->orderBy(DB::raw('LOWER(title)'), $direction);
+                $query->orderBy(DB::raw('LOWER(title)'), 'asc');
         }
     }
 

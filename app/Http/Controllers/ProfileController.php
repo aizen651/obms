@@ -15,7 +15,7 @@ class ProfileController extends Controller
     {
         $user = Auth::user();
 
-        return Inertia::render('Profile', [
+        return Inertia::render('User/Profile', [
             'user' => $user,
             'stats' => [
                 'total_borrowed' => $user->transactions()->count(),

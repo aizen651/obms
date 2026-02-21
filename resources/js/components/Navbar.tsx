@@ -18,7 +18,6 @@ const AUTH_NAV = [
     { label: "Home",         href: "/",            icon: Home            },
     { label: "Dashboard",    href: "/dashboard",    icon: LayoutDashboard },
     { label: "Books",        href: "/books",        icon: BookOpen        },
-    { label: "Borrow",       href: "/borrow",       icon: BookMarked      },
     { label: "Transactions", href: "/transactions", icon: ArrowLeftRight  },
     { label: "Journal",      href: "/journal",      icon: BookText        },
     { label: "Magazine",     href: "/magazine",     icon: Newspaper       },
