@@ -22,7 +22,6 @@ const AUTH_NAV = [
     { label: "Journal",      href: "/journal",      icon: BookText        },
     { label: "Magazine",     href: "/magazine",     icon: Newspaper       },
     { label: "E-Book",       href: "/ebooks",       icon: Tablet          },
-    { label: "Chat",         href: "/chat",         icon: MessageSquare   },
 ];
 
 export default function Navbar() {

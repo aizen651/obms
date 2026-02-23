@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Card, CardContent } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { toast } from 'sonner';
 
 const Field = ({ label, error, children }) => (
     <div className="space-y-1.5">
@@ -50,7 +51,13 @@ export default function Register() {
 
     const submit = (e) => {
         e.preventDefault()
-        post(route('register'), { forceFormData: true })
+        post(route('register'), { forceFormData: true,
+        onSuccess: () => {
+            setPreview(null)
+            toast.success('You are now successfully registered.')
+        },
+        onError: () => toast.error('Registration failed.'),
+        })
     }
 
     const ROLES = [

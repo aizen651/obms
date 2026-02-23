@@ -161,4 +161,10 @@ class User extends Authenticatable
         }
         return null;
     }
+    
+    public function journals()
+     {
+       return $this->hasMany(Journal::class);
+     }
+
 }

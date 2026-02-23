@@ -2,11 +2,12 @@ import { Head, Link } from "@inertiajs/react"
 import { useState } from "react"
 import { ChevronDown } from "lucide-react"
 import Navbar from "@/components/Navbar"
+import GlobalChat from "@/components/GlobalChat"
 
 const CARDS = [
     { title: "Journals",  desc: "Access academic journals and research papers", btn: "Browse Journals", href: "/journal"  },
     { title: "Magazines", desc: "Read the latest magazines and publications",   btn: "View Magazines",  href: "/magazine" },
-    { title: "E-Books",   desc: "Explore our extensive collection of e-books",  btn: "Explore E-Books", href: "/ebook"    },
+    { title: "E-Books",   desc: "Explore our extensive collection of e-books",  btn: "Explore E-Books", href: "/ebooks"   },
 ]
 
 export default function Landing() {
@@ -21,8 +22,6 @@ export default function Landing() {
 
                 {/* Hero */}
                 <section className="relative w-full h-[550px] md:h-[680px] flex items-center justify-center overflow-hidden pt-[73px]">
-
-                    {/* Background image */}
                     <div
                         onMouseEnter={() => setHovered(true)}
                         onMouseLeave={() => setHovered(false)}
@@ -32,17 +31,11 @@ export default function Landing() {
                             transition: "transform 600ms ease-out",
                             willChange: "transform",
                         }}
-                        
                         className="absolute inset-0 bg-cover bg-center opacity-20"
                     />
-
-                    {/* Spotlight glow */}
                     <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[500px] bg-white/5 rounded-full blur-[120px] pointer-events-none" />
                     <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[200px] h-[300px] bg-white/10 rounded-full blur-[60px] pointer-events-none" />
-
-                    {/* Seamless fade — no hard arc, just blends into zinc-950 */}
                     <div className="absolute inset-0 bg-gradient-to-b from-zinc-950/40 via-transparent to-zinc-950" />
-
                     <div className="relative z-10 text-center px-4 max-w-3xl animate-in fade-in slide-in-from-bottom-8 duration-700">
                         <p className="text-white/40 text-xs font-medium tracking-widest uppercase mb-4">
                             Thousands of Books Available
@@ -85,6 +78,9 @@ export default function Landing() {
                 </section>
 
             </div>
+
+            {/* Global floating chat — rendered outside the scroll container */}
+            <GlobalChat />
         </>
     )
 }

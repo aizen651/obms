@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { Head, router } from '@inertiajs/react';
 import { Book, Feather, Globe, Eye, EyeOff, Upload, Plus, ImageOff, Lock } from 'lucide-react';
 import { toast } from 'sonner';
-import Navbar from '@/components/Navbar';
+import AdminAuthLayout from '@/layouts/AdminAuthLayout';
 
 const ICONS = ['feather', 'globe', 'book'];
 const ICON_MAP = { feather: <Feather className="w-5 h-5" />, globe: <Globe className="w-5 h-5" />, book: <Book className="w-5 h-5" /> };
@@ -101,7 +101,7 @@ export default function MagazineEditor({ issue: initial }) {
         router.post(route('admin.magazine.save'), { ...d, is_published: next }, {
             preserveScroll: true,
             preserveState: false,
-            onSuccess: () => toast.success(next ? '🟢 Published! Live to users.' : '⭕ Unpublished. Back to draft.', { id: tid }),
+            onSuccess: () => toast.success(next ? 'Published! Live to users.' : 'Unpublished. Back to draft.', { id: tid }),
             onError: () => { setD(p => ({ ...p, is_published: !next })); toast.error('Something went wrong.', { id: tid }); },
             onFinish: () => setSaving(false),
         });
@@ -118,9 +118,10 @@ export default function MagazineEditor({ issue: initial }) {
     };
 
     return (
+      <>
+      <AdminAuthLayout>
         <div className="min-h-screen bg-[#030303] text-zinc-200 font-serif">
             <Head title="Magazine Editor — ECHO Admin" />
-            <Navbar />
 
             {/* Background blobs */}
             <div aria-hidden className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
@@ -296,5 +297,7 @@ export default function MagazineEditor({ issue: initial }) {
                 Echo Magazine — Issue No. {d.issue_number} — MMXXVI
             </footer>
         </div>
+      </AdminAuthLayout>
+      </>
     );
 }

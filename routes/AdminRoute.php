@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\ExportController;
 use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\StoryController;
 use App\Http\Controllers\Admin\TransactionController;
 use App\Http\Controllers\Admin\Transaction\SettingController;
 use App\Http\Controllers\MagazineController;
@@ -65,11 +66,18 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         // ── Magazine Admin ────────────────────────────────────────────────────
         Route::get('/magazine',              [MagazineController::class, 'editor'])->name('magazine');
-Route::get('/magazine/save',         fn() => redirect()->route('admin.magazine'))->name('magazine.save.get'); // mobile browser fallback
-Route::post('/magazine/save',        [MagazineController::class, 'save'])->name('magazine.save');
-Route::post('/magazine/image',       [MagazineController::class, 'uploadImage'])->name('magazine.image');
-Route::post('/magazine/publish',     [MagazineController::class, 'togglePublish'])->name('magazine.publish');
+      Route::get('/magazine/save',         fn() => redirect()->route('admin.magazine'))->name('magazine.save.get'); // mobile browser fallback
+      Route::post('/magazine/save',        [MagazineController::class, 'save'])->name('magazine.save');
+      Route::post('/magazine/image',       [MagazineController::class, 'uploadImage'])->name('magazine.image');
+      Route::post('/magazine/publish',     [MagazineController::class, 'togglePublish'])->name('magazine.publish');
+      
+      // E-book requests
+      Route::get('/ebooks',                          [StoryController::class, 'index'])->name('ebooks.index');
+    Route::get('/ebooks/{story}',                  [StoryController::class, 'show'])->name('ebooks.show');
+    Route::post('/ebooks/{story}/approve',         [StoryController::class, 'approve'])->name('ebooks.approve');
+    Route::post('/ebooks/{story}/reject',          [StoryController::class, 'reject'])->name('ebooks.reject');
+    Route::delete('/ebooks/{story}',               [StoryController::class, 'destroy'])->name('ebooks.destroy');
 
-        Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+      Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     });
 });
