@@ -21,9 +21,11 @@ class User extends Authenticatable
         'role',
         'student_id',
         'teacher_id',
+        'is_online',
+        'last_seen_at',
     ];
-    
-    protected $appends = ['member_id'];
+
+    protected $appends = ['member_id', 'full_name'];
 
     protected $hidden = [
         'password',
@@ -34,7 +36,9 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
-            'password' => 'hashed',
+            'last_seen_at'      => 'datetime',
+            'password'          => 'hashed',
+            'is_online'         => 'boolean',
         ];
     }
 
@@ -58,11 +62,9 @@ class User extends Authenticatable
                 if ($newRole === 'student' && !$user->student_id) {
                     $user->student_id = self::generateStudentId();
                 }
-
                 if ($newRole === 'teacher' && !$user->teacher_id) {
                     $user->teacher_id = self::generateTeacherId();
                 }
-
                 if ($oldRole === 'student' && $newRole !== 'student') {
                     $user->student_id = null;
                 }
@@ -76,95 +78,51 @@ class User extends Authenticatable
     private static function generateStudentId(): string
     {
         do {
-            $randomNumber = str_pad(rand(0, 999999), 6, '0', STR_PAD_LEFT);
-            $studentId = 'STD-' . $randomNumber;
-            $exists = self::where('student_id', $studentId)->exists();
-        } while ($exists);
-        return $studentId;
+            $id = 'STD-' . str_pad(rand(0, 999999), 6, '0', STR_PAD_LEFT);
+        } while (self::where('student_id', $id)->exists());
+        return $id;
     }
 
     private static function generateTeacherId(): string
     {
         do {
-            $randomNumber = str_pad(rand(0, 999999), 6, '0', STR_PAD_LEFT);
-            $teacherId = 'INST-' . $randomNumber;
-            $exists = self::where('teacher_id', $teacherId)->exists();
-        } while ($exists);
-        return $teacherId;
+            $id = 'INST-' . str_pad(rand(0, 999999), 6, '0', STR_PAD_LEFT);
+        } while (self::where('teacher_id', $id)->exists());
+        return $id;
     }
 
-    // FIXED RELATIONSHIPS - Using Transaction model
-    public function transactions()
-    {
-        return $this->hasMany(Transaction::class, 'borrower_id');
-    }
+    // ── Relationships ─────────────────────────────────────────────────────────
+    public function transactions()      { return $this->hasMany(Transaction::class, 'borrower_id'); }
+    public function borrowedBooks()     { return $this->hasMany(Transaction::class, 'borrower_id')->where('status', 'borrowed')->with('book'); }
+    public function overdueBooks()      { return $this->hasMany(Transaction::class, 'borrower_id')->where('status', 'overdue')->with('book'); }
+    public function borrowHistory()     { return $this->hasMany(Transaction::class, 'borrower_id')->where('status', 'returned')->with('book'); }
+    public function borrows()           { return $this->transactions(); }
+    public function currentlyBorrowedBooks() { return $this->borrowedBooks(); }
+    public function journals()          { return $this->hasMany(Journal::class); }
+    public function chatMessages()      { return $this->hasMany(ChatMessage::class); }
 
-    public function borrowedBooks()
-    {
-        return $this->hasMany(Transaction::class, 'borrower_id')
-                    ->where('status', 'borrowed')
-                    ->with('book');
-    }
+    // ── Helpers ───────────────────────────────────────────────────────────────
+    public function isAdmin(): bool    { return $this->role === 'admin'; }
+    public function isTeacher(): bool  { return $this->role === 'teacher'; }
+    public function isStudent(): bool  { return $this->role === 'student'; }
 
-    public function overdueBooks()
-    {
-        return $this->hasMany(Transaction::class, 'borrower_id')
-                    ->where('status', 'overdue')
-                    ->with('book');
-    }
-
-    public function borrowHistory()
-    {
-        return $this->hasMany(Transaction::class, 'borrower_id')
-                    ->where('status', 'returned')
-                    ->with('book');
-    }
-
-    // Keep these for backward compatibility if needed
-    public function borrows()
-    {
-        return $this->transactions();
-    }
-
-    public function currentlyBorrowedBooks()
-    {
-        return $this->borrowedBooks();
-    }
-
-    // Helper methods
-    public function isAdmin(): bool
-    {
-        return $this->role === 'admin';
-    }
-
-    public function isTeacher(): bool
-    {
-        return $this->role === 'teacher';
-    }
-
-    public function isStudent(): bool
-    {
-        return $this->role === 'student';
-    }
-
+    // ── Accessors ─────────────────────────────────────────────────────────────
     public function getFullNameAttribute(): string
     {
-        return "{$this->firstname} {$this->lastname}";
+        return trim("{$this->firstname} {$this->lastname}");
     }
 
     public function getMemberIdAttribute(): ?string
     {
-        if ($this->role === 'student') {
-            return $this->student_id;
-        } elseif ($this->role === 'teacher') {
-            return $this->teacher_id;
-        }
-        return null;
+        return match ($this->role) {
+            'student' => $this->student_id,
+            'teacher' => $this->teacher_id,
+            default   => null,
+        };
     }
-    
-    public function journals()
-     {
-       return $this->hasMany(Journal::class);
-     }
 
+    public function getAvatarUrlAttribute(): ?string
+    {
+        return $this->user_image ? asset('storage/' . $this->user_image) : null;
+    }
 }

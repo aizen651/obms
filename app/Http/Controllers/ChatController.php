@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\GlobalMessageDeleted;
 use App\Events\GlobalMessageSent;
 use App\Models\ChatMessage;
 use Illuminate\Http\Request;
@@ -26,11 +27,38 @@ class ChatController extends Controller
 
         broadcast(new GlobalMessageSent(
             id:        (string) $chat->id,
-            username:  $user->name ?? $user->email ?? 'Anonymous',
+            userId:    $user->id,
+            username:  $user->full_name,
+            avatar:    $user->avatar_url,
             message:   $chat->message,
             timestamp: $chat->created_at->toISOString(),
         ));
 
         return back();
+    }
+
+    public function deleteMessage(Request $request, ChatMessage $message)
+    {
+        if ($message->user_id !== $request->user()->id) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        $message->delete();
+        broadcast(new GlobalMessageDeleted(id: (string) $message->id));
+
+        return response()->json(['ok' => true]);
+    }
+
+    public function updateStatus(Request $request)
+    {
+        $request->validate(['status' => ['required', 'in:online,offline']]);
+
+        $user = $request->user();
+        $user->update([
+            'is_online'    => $request->status === 'online',
+            'last_seen_at' => $request->status === 'offline' ? now() : $user->last_seen_at,
+        ]);
+
+        return response()->json(['ok' => true]);
     }
 }

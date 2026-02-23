@@ -47,8 +47,11 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile/image',  [ProfileController::class, 'removeImage'])->name('profile.image.remove');
     
     // Chats
-    Route::get('/chat/messages',  [ChatController::class, 'messages'])->name('chat.messages');
-    Route::post('/chat/messages', [ChatController::class, 'store'])->name('chat.store');
+    Route::post('/chat/messages',             [ChatController::class, 'store'])->name('chat.store');
+    Route::delete('/chat/messages/{message}', [ChatController::class, 'deleteMessage'])->name('chat.delete');
+    Route::post('/chat/status',               [ChatController::class, 'updateStatus'])->name('chat.status');
+
+
 
     // Transactions / Borrow
     Route::get('/transactions',        [TransactionController::class, 'index'])->name('transactions.index');

@@ -8,19 +8,12 @@ use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class GlobalMessageSent implements ShouldBroadcastNow
+class GlobalMessageDeleted implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
-    public function __construct(
-        public readonly string  $id,
-        public readonly int     $userId,
-        public readonly string  $username,
-        public readonly ?string $avatar,
-        public readonly string  $message,
-        public readonly string  $timestamp,
-    ) {}
+    public function __construct(public readonly string $id) {}
 
     public function broadcastOn(): array  { return [new Channel('global-chat')]; }
-    public function broadcastAs(): string { return 'message.sent'; }
+    public function broadcastAs(): string { return 'message.deleted'; }
 }

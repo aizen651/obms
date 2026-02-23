@@ -34,7 +34,9 @@ class AppServiceProvider extends ServiceProvider
                 ->values()
                 ->map(fn ($m) => [
                     'id'        => (string) $m->id,
-                    'username'  => $m->user->name ?? $m->user->email ?? 'Anonymous',
+                    'userId'    => $m->user_id,
+                    'username'  => $m->user->full_name,
+                    'avatar'    => $m->user->avatar_url,
                     'message'   => $m->message,
                     'timestamp' => $m->created_at->toISOString(),
                 ]);
@@ -44,18 +46,9 @@ class AppServiceProvider extends ServiceProvider
     protected function configureDefaults(): void
     {
         Date::use(CarbonImmutable::class);
-
-        DB::prohibitDestructiveCommands(
-            app()->isProduction(),
-        );
-
+        DB::prohibitDestructiveCommands(app()->isProduction());
         Password::defaults(fn (): ?Password => app()->isProduction()
-            ? Password::min(12)
-                ->mixedCase()
-                ->letters()
-                ->numbers()
-                ->symbols()
-                ->uncompromised()
+            ? Password::min(12)->mixedCase()->letters()->numbers()->symbols()->uncompromised()
             : null
         );
     }
