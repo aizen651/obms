@@ -9,5 +9,5 @@
   "rewrites": [
     { "source": "/(.*)", "destination": "/api/lambda.php" }
   ],
-  "buildCommand": "npx vite build",
+  "buildCommand": "npx vite build"
 }
