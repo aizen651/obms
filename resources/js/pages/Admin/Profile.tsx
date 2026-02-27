@@ -1,319 +1,422 @@
 import React, { useState } from 'react';
 import { Head, useForm, usePage } from '@inertiajs/react';
 import AdminAuthLayout from '@/layouts/AdminAuthLayout';
-import { User, Lock } from 'lucide-react';
+import { User, Lock, Camera, Save, KeyRound, Shield, Mail, Phone, Venus, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
+
+/* ─────────────────────────────────────────
+   Floating label input
+───────────────────────────────────────── */
+const Field = ({ label, type = 'text', value, onChange, error, required, icon: Icon }) => (
+    <div style={{ position: 'relative', marginBottom: 0 }}>
+        <div style={{ position: 'relative' }}>
+            {Icon && (
+                <span style={{
+                    position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)',
+                    color: 'rgba(0,0,0,0.25)', display: 'flex', pointerEvents: 'none', zIndex: 1,
+                    transition: 'color 0.15s',
+                }}>
+                    <Icon size={15} strokeWidth={1.75} />
+                </span>
+            )}
+            <input
+                type={type}
+                placeholder=" "
+                value={value}
+                onChange={onChange}
+                required={required}
+                style={{
+                    width: '100%',
+                    padding: Icon ? '20px 14px 8px 40px' : '20px 14px 8px 14px',
+                    border: `1.5px solid ${error ? '#f43f5e' : '#e8e8f0'}`,
+                    borderRadius: 12,
+                    fontSize: 14,
+                    fontFamily: "'Plus Jakarta Sans', sans-serif",
+                    color: '#0f0e17',
+                    background: '#fafafa',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                    transition: 'border-color 0.18s, box-shadow 0.18s, background 0.18s',
+                }}
+                onFocus={e => {
+                    e.target.style.borderColor = '#4f46e5';
+                    e.target.style.background = '#fff';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(79,70,229,0.1)';
+                }}
+                onBlur={e => {
+                    e.target.style.borderColor = error ? '#f43f5e' : '#e8e8f0';
+                    e.target.style.background = '#fafafa';
+                    e.target.style.boxShadow = 'none';
+                }}
+            />
+            <label style={{
+                position: 'absolute',
+                left: Icon ? 40 : 14,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                fontSize: 14,
+                color: '#b0adb8',
+                pointerEvents: 'none',
+                transition: 'all 0.18s cubic-bezier(.4,0,.2,1)',
+                transformOrigin: 'left top',
+                padding: '0 2px',
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+            }}
+                className="float-lbl"
+            >{label}</label>
+        </div>
+        {error && <p style={{ fontSize: 11, color: '#f43f5e', marginTop: 5, fontWeight: 500 }}>{error}</p>}
+        <style>{`
+            input:focus ~ .float-lbl, input:not(:placeholder-shown) ~ .float-lbl {
+                top: -1px !important;
+                transform: translateY(-50%) scale(0.74) !important;
+                color: #4f46e5 !important;
+                font-weight: 600 !important;
+                background: #fff !important;
+                padding: 0 5px !important;
+                left: ${Icon ? '12px' : '12px'} !important;
+            }
+        `}</style>
+    </div>
+);
+
+/* ─────────────────────────────────────────
+   Info tile (read-only display row)
+───────────────────────────────────────── */
+const InfoTile = ({ label, value, icon: Icon, color }) => (
+    <div style={{
+        display: 'flex', alignItems: 'center', gap: 14,
+        padding: '14px 18px',
+        background: '#fafafa',
+        borderRadius: 12,
+        border: '1px solid #f0f0f8',
+    }}>
+        <div style={{
+            width: 38, height: 38, borderRadius: 10, flexShrink: 0,
+            background: `${color}14`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+            <Icon size={17} style={{ color }} strokeWidth={1.75} />
+        </div>
+        <div style={{ minWidth: 0 }}>
+            <p style={{ fontSize: 10.5, fontWeight: 600, color: 'rgba(0,0,0,0.35)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 2 }}>{label}</p>
+            <p style={{ fontSize: 13.5, fontWeight: 500, color: '#0f0e17', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value || '—'}</p>
+        </div>
+    </div>
+);
 
 export default function Profile() {
     const { auth } = usePage().props;
-    const [activeTab, setActiveTab] = useState('profile');
-    const [previewImage, setPreviewImage] = useState(
-        auth.user.user_image ? `/storage/${auth.user.user_image}` : null
-    );
+    const u = auth.user;
+    const [tab, setTab] = useState('profile');
+    const [preview, setPreview] = useState(u.user_image ? `/storage/${u.user_image}` : null);
 
-    const profileForm = useForm({
-        user_image: null,
-        firstname: auth.user.firstname || '',
-        lastname: auth.user.lastname || '',
-        email: auth.user.email || '',
-        contact: auth.user.contact || '',
-        gender: auth.user.gender || '',
-    });
+    const pf  = useForm({ user_image: null, firstname: u.firstname || '', lastname: u.lastname || '', email: u.email || '', contact: u.contact || '', gender: u.gender || '' });
+    const pwf = useForm({ current_password: '', password: '', password_confirmation: '' });
 
-    const passwordForm = useForm({
-        current_password: '',
-        password: '',
-        password_confirmation: '',
-    });
-
-    const handleImageChange = (e) => {
+    const onImage = (e) => {
         const file = e.target.files[0];
-        if (file) {
-            profileForm.setData('user_image', file);
-            const reader = new FileReader();
-            reader.onloadend = () => setPreviewImage(reader.result);
-            reader.readAsDataURL(file);
-        }
+        if (!file) return;
+        pf.setData('user_image', file);
+        const r = new FileReader();
+        r.onloadend = () => setPreview(r.result);
+        r.readAsDataURL(file);
     };
 
-    const submitProfile = (e) => {
+    const saveProfile = (e) => {
         e.preventDefault();
-        profileForm.post('/admin/profile/update', {
+        pf.post('/admin/profile/update', {
             preserveScroll: true,
-            onSuccess: () => toast.success('Profile updated successfully!'),
-            onError: () => toast.error('Failed to update profile. Please check your inputs.'),
+            onSuccess: () => toast.success('Profile updated!'),
+            onError:   () => toast.error('Failed to update profile.'),
         });
     };
 
-    const submitPassword = (e) => {
+    const savePassword = (e) => {
         e.preventDefault();
-        passwordForm.put('/admin/profile/password', {
+        pwf.put('/admin/profile/password', {
             preserveScroll: true,
-            onSuccess: () => {
-                passwordForm.reset();
-                toast.success('Password changed successfully!');
-            },
-            onError: () =>
-                toast.error('Failed to change password. Please check your current password.'),
+            onSuccess: () => { pwf.reset(); toast.success('Password changed!'); },
+            onError:   () => toast.error('Failed to change password.'),
         });
     };
 
-    const tabs = [
-        {
-            id: 'profile',
-            name: 'Update Profile',
-            icon: <User className="w-5 h-5" />,
-        },
-        {
-            id: 'password',
-            name: 'Change Password',
-            icon: <Lock className="w-5 h-5" />,
-        },
-    ];
+    const btn = (processing, label, LoadLabel, Icon) => (
+        <button
+            type="submit"
+            disabled={processing}
+            style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '12px 24px',
+                background: processing ? '#c7c4f0' : 'linear-gradient(135deg,#4f46e5,#2563eb)',
+                color: '#fff',
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+                fontSize: 13.5, fontWeight: 600,
+                border: 'none', borderRadius: 11,
+                cursor: processing ? 'not-allowed' : 'pointer',
+                boxShadow: '0 4px 14px rgba(79,70,229,0.28)',
+                transition: 'opacity 0.15s, transform 0.15s',
+                marginTop: 4,
+            }}
+            onMouseEnter={e => { if (!processing) e.currentTarget.style.transform = 'translateY(-1px)'; }}
+            onMouseLeave={e => { e.currentTarget.style.transform = 'none'; }}
+        >
+            {processing
+                ? <><span style={{ width:14,height:14,border:'2px solid rgba(255,255,255,0.4)',borderTopColor:'#fff',borderRadius:'50%',animation:'spin .7s linear infinite',display:'inline-block' }} />{LoadLabel}</>
+                : <><Icon size={14} strokeWidth={2} />{label}</>
+            }
+        </button>
+    );
 
     return (
         <AdminAuthLayout header="Profile Settings">
             <Head title="Profile" />
 
-            <div className="max-w-4xl mx-auto">
-                <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+            <style>{`
+                @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+                @keyframes spin { to { transform: rotate(360deg); } }
+                @keyframes fadeup { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:none; } }
+                .prof-page * { box-sizing: border-box; }
 
-                    {/* Tab Navigation */}
-                    <div className="border-b border-amber-100">
-                        <div className="flex">
-                            {tabs.map((tab) => (
-                                <button
-                                    key={tab.id}
-                                    onClick={() => setActiveTab(tab.id)}
-                                    className={`
-                                        flex-1 px-6 py-4 font-medium transition-all
-                                        flex items-center justify-center gap-2
-                                        ${activeTab === tab.id
-                                            ? 'bg-gradient-to-r from-amber-400 to-orange-500 text-white'
-                                            : 'text-gray-600 hover:bg-amber-50'
-                                        }
-                                    `}
+                .prof-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+                .prof-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+
+                @media (max-width: 680px) {
+                    .prof-grid   { grid-template-columns: 1fr; }
+                    .prof-grid-3 { grid-template-columns: 1fr 1fr; }
+                    .prof-header-inner { flex-direction: column !important; align-items: flex-start !important; }
+                    .prof-tabs-row { overflow-x: auto; }
+                }
+                @media (max-width: 420px) {
+                    .prof-grid-3 { grid-template-columns: 1fr; }
+                }
+            `}</style>
+
+            <div className="prof-page" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", maxWidth: 860, margin: '0 auto' }}>
+
+                {/* ── Header card ── */}
+                <div style={{
+                    background: '#fff',
+                    borderRadius: 20,
+                    border: '1px solid rgba(0,0,0,0.07)',
+                    boxShadow: '0 2px 16px rgba(0,0,0,0.05)',
+                    overflow: 'hidden',
+                    marginBottom: 18,
+                    animation: 'fadeup .3s ease',
+                }}>
+                    {/* Banner */}
+                    <div style={{
+                        height: 96,
+                        background: 'linear-gradient(120deg, #eef2ff 0%, #e0e7ff 40%, #dbeafe 100%)',
+                        position: 'relative',
+                        overflow: 'hidden',
+                    }}>
+                        {/* Decorative circles */}
+                        <div style={{ position:'absolute', top:-30, right:-30, width:140, height:140, borderRadius:'50%', background:'rgba(79,70,229,0.06)' }} />
+                        <div style={{ position:'absolute', bottom:-20, left:'30%', width:100, height:100, borderRadius:'50%', background:'rgba(37,99,235,0.05)' }} />
+                        <div style={{ position:'absolute', top:10, left:10, width:60, height:60, borderRadius:'50%', background:'rgba(79,70,229,0.04)' }} />
+                    </div>
+
+                    {/* Profile info row */}
+                    <div className="prof-header-inner" style={{ display:'flex', alignItems:'flex-end', justifyContent:'space-between', padding:'0 28px 24px', gap:16 }}>
+                        <div style={{ display:'flex', alignItems:'flex-end', gap:18 }}>
+                            {/* Avatar */}
+                            <div style={{ position:'relative', marginTop:-44, flexShrink:0 }}>
+                                <div style={{
+                                    width:88, height:88, borderRadius:'50%', overflow:'hidden',
+                                    background:'linear-gradient(135deg,#4f46e5,#2563eb)',
+                                    display:'flex', alignItems:'center', justifyContent:'center',
+                                    fontSize:28, fontWeight:700, color:'#fff',
+                                    border:'4px solid #fff',
+                                    boxShadow:'0 4px 16px rgba(79,70,229,0.2)',
+                                }}>
+                                    {preview ? <img src={preview} alt="" style={{ width:'100%',height:'100%',objectFit:'cover' }} /> : <span>{u.firstname?.charAt(0)}{u.lastname?.charAt(0)}</span>}
+                                </div>
+                                <label style={{
+                                    position:'absolute', bottom:2, right:2,
+                                    width:28, height:28, borderRadius:'50%',
+                                    background:'#4f46e5',
+                                    display:'flex', alignItems:'center', justifyContent:'center',
+                                    cursor:'pointer', border:'2px solid #fff',
+                                    boxShadow:'0 2px 8px rgba(79,70,229,0.3)',
+                                    transition:'transform 0.15s',
+                                }}
+                                    onMouseEnter={e => e.currentTarget.style.transform='scale(1.1)'}
+                                    onMouseLeave={e => e.currentTarget.style.transform='scale(1)'}
                                 >
-                                    <span className="flex items-center">
-                                        {tab.icon}
+                                    <Camera size={12} color="#fff" strokeWidth={2.5} />
+                                    <input type="file" style={{ display:'none' }} accept="image/*" onChange={onImage} />
+                                </label>
+                            </div>
+
+                            {/* Name + meta */}
+                            <div style={{ paddingBottom:4 }}>
+                                <h1 style={{ fontSize:20, fontWeight:700, color:'#0f0e17', marginBottom:6, lineHeight:1.2 }}>
+                                    {u.firstname} {u.lastname}
+                                </h1>
+                                <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
+                                    <span style={{
+                                        display:'inline-flex', alignItems:'center', gap:4,
+                                        background:'#eef2ff', color:'#4f46e5',
+                                        fontSize:10.5, fontWeight:600, letterSpacing:'.07em', textTransform:'uppercase',
+                                        borderRadius:100, padding:'3px 10px',
+                                        border:'1px solid rgba(79,70,229,0.15)',
+                                    }}>
+                                        <Shield size={9} strokeWidth={2.5} />{u.role}
                                     </span>
-                                    <span>{tab.name}</span>
-                                </button>
-                            ))}
+                                    <span style={{ display:'inline-flex', alignItems:'center', gap:4, fontSize:12, color:'rgba(0,0,0,0.35)' }}>
+                                        <CheckCircle2 size={12} color="#22c55e" strokeWidth={2} /> Active account
+                                    </span>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    {/* PROFILE FORM */}
-                    {activeTab === 'profile' && (
-                        <form onSubmit={submitProfile} className="p-8 space-y-6">
+                    {/* Info tiles */}
+                    <div style={{ padding:'0 28px 24px' }}>
+                        <div className="prof-grid-3" style={{ gap:12 }}>
+                            <InfoTile label="Email"   value={u.email}   icon={Mail}  color="#4f46e5" />
+                            <InfoTile label="Phone"   value={u.contact} icon={Phone} color="#2563eb" />
+                            <InfoTile label="Gender"  value={u.gender}  icon={Venus} color="#0891b2" />
+                        </div>
+                    </div>
+                </div>
 
-                            {/* Profile Image */}
-                            <div className="flex flex-col items-center gap-4">
-                                <div className="relative">
-                                    <div className="w-32 h-32 rounded-full overflow-hidden bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center border-4 border-amber-200 shadow-lg">
-                                        {previewImage ? (
-                                            <img
-                                                src={previewImage}
-                                                alt="Profile"
-                                                className="w-full h-full object-cover"
-                                            />
-                                        ) : (
-                                            <span className="text-4xl font-bold text-white">
-                                                {auth.user.firstname?.charAt(0)}
-                                                {auth.user.lastname?.charAt(0)}
-                                            </span>
-                                        )}
-                                    </div>
+                {/* ── Tab nav ── */}
+                <div className="prof-tabs-row" style={{ display:'flex', gap:4, marginBottom:16, background:'#f1f2f8', borderRadius:13, padding:4 }}>
+                    {[
+                        { id:'profile',  label:'Edit Profile',    icon:<User size={13} strokeWidth={2} /> },
+                        { id:'password', label:'Change Password', icon:<Lock size={13} strokeWidth={2} /> },
+                    ].map(({ id, label, icon }) => (
+                        <button key={id} onClick={() => setTab(id)} style={{
+                            flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:7,
+                            padding:'9px 18px',
+                            borderRadius:10,
+                            fontSize:13, fontWeight:500,
+                            fontFamily:"'Plus Jakarta Sans',sans-serif",
+                            cursor:'pointer', border:'none',
+                            transition:'all 0.18s',
+                            color: tab===id ? '#4f46e5' : 'rgba(0,0,0,0.42)',
+                            background: tab===id ? '#fff' : 'transparent',
+                            boxShadow: tab===id ? '0 1px 6px rgba(0,0,0,0.09),0 0 0 1px rgba(79,70,229,0.11)' : 'none',
+                            fontWeight: tab===id ? 600 : 500,
+                        }}>
+                            {icon}{label}
+                        </button>
+                    ))}
+                </div>
 
-                                    <label className="absolute bottom-0 right-0 bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 text-white p-3 rounded-full cursor-pointer shadow-lg transition-all">
-                                        <svg
-                                            className="w-5 h-5"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            viewBox="0 0 24 24"
-                                        >
-                                            <path
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                strokeWidth={2}
-                                                d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
-                                            />
-                                            <path
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                strokeWidth={2}
-                                                d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
-                                            />
-                                        </svg>
-                                        <input
-                                            type="file"
-                                            className="hidden"
-                                            accept="image/*"
-                                            onChange={handleImageChange}
-                                        />
-                                    </label>
-                                </div>
+                {/* ── Form card ── */}
+                <div key={tab} style={{
+                    background:'#fff',
+                    borderRadius:20,
+                    border:'1px solid rgba(0,0,0,0.07)',
+                    boxShadow:'0 2px 16px rgba(0,0,0,0.05)',
+                    overflow:'hidden',
+                    animation:'fadeup .22s ease',
+                }}>
+                    {/* Form header */}
+                    <div style={{
+                        padding:'22px 28px 18px',
+                        borderBottom:'1px solid rgba(0,0,0,0.05)',
+                        display:'flex', alignItems:'center', gap:14,
+                        background:'linear-gradient(135deg,rgba(79,70,229,0.03) 0%,transparent 100%)',
+                    }}>
+                        <div style={{
+                            width:42, height:42, borderRadius:11,
+                            background:'rgba(79,70,229,0.09)',
+                            display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0,
+                        }}>
+                            {tab==='profile' ? <User size={19} color="#4f46e5" strokeWidth={1.75} /> : <KeyRound size={19} color="#4f46e5" strokeWidth={1.75} />}
+                        </div>
+                        <div>
+                            <p style={{ fontSize:11, fontWeight:600, letterSpacing:'.09em', textTransform:'uppercase', color:'#4f46e5', marginBottom:3 }}>
+                                {tab==='profile' ? 'Account' : 'Security'}
+                            </p>
+                            <h2 style={{ fontSize:17, fontWeight:700, color:'#0f0e17', lineHeight:1 }}>
+                                {tab==='profile' ? 'Personal Information' : 'Change Password'}
+                            </h2>
+                        </div>
+                    </div>
 
-                                <div className="text-center">
-                                    <p className="font-semibold text-gray-800">
-                                        {auth.user.firstname} {auth.user.lastname}
-                                    </p>
-                                    <p className="text-sm text-amber-600">
-                                        {auth.user.role}
-                                    </p>
+                    {/* Profile form */}
+                    {tab === 'profile' && (
+                        <form onSubmit={saveProfile} style={{ padding:'24px 28px 28px' }}>
+                            <p style={{ fontSize:10.5, fontWeight:600, letterSpacing:'.08em', textTransform:'uppercase', color:'rgba(0,0,0,0.28)', marginBottom:14 }}>Full name</p>
+                            <div className="prof-grid" style={{ marginBottom:18 }}>
+                                <Field label="First Name" value={pf.data.firstname} onChange={e=>pf.setData('firstname',e.target.value)} error={pf.errors.firstname} icon={User} required />
+                                <Field label="Last Name"  value={pf.data.lastname}  onChange={e=>pf.setData('lastname',e.target.value)}  error={pf.errors.lastname}  icon={User} required />
+                            </div>
+
+                            <div style={{ height:1, background:'rgba(0,0,0,0.05)', margin:'4px 0 20px' }} />
+                            <p style={{ fontSize:10.5, fontWeight:600, letterSpacing:'.08em', textTransform:'uppercase', color:'rgba(0,0,0,0.28)', marginBottom:14 }}>Contact details</p>
+
+                            <div style={{ marginBottom:18 }}>
+                                <Field label="Email Address" type="email" value={pf.data.email} onChange={e=>pf.setData('email',e.target.value)} error={pf.errors.email} icon={Mail} required />
+                            </div>
+                            <div className="prof-grid" style={{ marginBottom:4 }}>
+                                <Field label="Phone Number" value={pf.data.contact} onChange={e=>pf.setData('contact',e.target.value)} icon={Phone} />
+                                <div style={{ position:'relative' }}>
+                                    <select
+                                        value={pf.data.gender}
+                                        onChange={e=>pf.setData('gender',e.target.value)}
+                                        style={{
+                                            width:'100%', padding:'20px 14px 8px 40px',
+                                            border:'1.5px solid #e8e8f0', borderRadius:12,
+                                            fontSize:14, fontFamily:"'Plus Jakarta Sans',sans-serif",
+                                            color:'#0f0e17', background:'#fafafa',
+                                            outline:'none', appearance:'none', cursor:'pointer',
+                                            boxSizing:'border-box',
+                                        }}
+                                        onFocus={e=>{e.target.style.borderColor='#4f46e5';e.target.style.boxShadow='0 0 0 3px rgba(79,70,229,0.1)';e.target.style.background='#fff';}}
+                                        onBlur={e=>{e.target.style.borderColor='#e8e8f0';e.target.style.boxShadow='none';e.target.style.background='#fafafa';}}
+                                    >
+                                        <option value="">Select gender</option>
+                                        <option value="male">Male</option>
+                                        <option value="female">Female</option>
+                                        <option value="other">Other</option>
+                                        <option value="prefer_not_to_say">Prefer not to say</option>
+                                    </select>
+                                    <span style={{ position:'absolute', left:14, top:'50%', transform:'translateY(-50%)', color:'rgba(0,0,0,0.25)', display:'flex', pointerEvents:'none' }}>
+                                        <Venus size={15} strokeWidth={1.75} />
+                                    </span>
+                                    <span style={{ position:'absolute', left:12, top:-1, transform:'translateY(-50%) scale(0.74)', color:'#4f46e5', fontSize:14, fontWeight:600, pointerEvents:'none', background:'#fff', padding:'0 5px', transformOrigin:'left top', fontFamily:"'Plus Jakarta Sans',sans-serif" }}>
+                                        Gender
+                                    </span>
                                 </div>
                             </div>
 
-                            {/* Name Fields */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        First Name
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={profileForm.data.firstname}
-                                        onChange={(e) =>
-                                            profileForm.setData('firstname', e.target.value)
-                                        }
-                                        className="w-full px-4 py-3 border border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-transparent outline-none"
-                                        required
-                                    />
-                                    {profileForm.errors.firstname && (
-                                        <p className="text-red-600 text-sm mt-1">
-                                            {profileForm.errors.firstname}
-                                        </p>
-                                    )}
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Last Name
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={profileForm.data.lastname}
-                                        onChange={(e) =>
-                                            profileForm.setData('lastname', e.target.value)
-                                        }
-                                        className="w-full px-4 py-3 border border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-transparent outline-none"
-                                        required
-                                    />
-                                    {profileForm.errors.lastname && (
-                                        <p className="text-red-600 text-sm mt-1">
-                                            {profileForm.errors.lastname}
-                                        </p>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Email */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Email Address
-                                </label>
-                                <input
-                                    type="email"
-                                    value={profileForm.data.email}
-                                    onChange={(e) =>
-                                        profileForm.setData('email', e.target.value)
-                                    }
-                                    className="w-full px-4 py-3 border border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-transparent outline-none"
-                                    required
-                                />
-                            </div>
-
-                            {/* Contact */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Contact Number
-                                </label>
-                                <input
-                                    type="text"
-                                    value={profileForm.data.contact}
-                                    onChange={(e) =>
-                                        profileForm.setData('contact', e.target.value)
-                                    }
-                                    className="w-full px-4 py-3 border border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-transparent outline-none"
-                                    placeholder="+1234567890"
-                                />
-                            </div>
-
-                            {/* Submit */}
-                            <button
-                                type="submit"
-                                disabled={profileForm.processing}
-                                className="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold rounded-lg transition-all disabled:opacity-50"
-                            >
-                                {profileForm.processing ? 'Saving...' : 'Save Changes'}
-                            </button>
+                            <div style={{ height:1, background:'rgba(0,0,0,0.05)', margin:'22px 0 18px' }} />
+                            {btn(pf.processing, 'Save Changes', 'Saving…', Save)}
                         </form>
                     )}
 
-                    {/* PASSWORD FORM */}
-                    {activeTab === 'password' && (
-                        <form onSubmit={submitPassword} className="p-8 space-y-6">
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Current Password
-                                </label>
-                                <input
-                                    type="password"
-                                    value={passwordForm.data.current_password}
-                                    onChange={(e) =>
-                                        passwordForm.setData(
-                                            'current_password',
-                                            e.target.value
-                                        )
-                                    }
-                                    className="w-full px-4 py-3 border border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-transparent outline-none"
-                                    required
-                                />
+                    {/* Password form */}
+                    {tab === 'password' && (
+                        <form onSubmit={savePassword} style={{ padding:'24px 28px 28px' }}>
+                            <div style={{
+                                background:'#f8f8ff', border:'1px solid #e0e0f8',
+                                borderRadius:12, padding:'14px 18px', marginBottom:22,
+                                fontSize:13, color:'rgba(0,0,0,0.5)', lineHeight:1.6,
+                            }}>
+                                <strong style={{ color:'#4f46e5' }}>Tips — </strong>
+                                Use 8+ characters with a mix of uppercase, lowercase, numbers, and symbols.
                             </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    New Password
-                                </label>
-                                <input
-                                    type="password"
-                                    value={passwordForm.data.password}
-                                    onChange={(e) =>
-                                        passwordForm.setData('password', e.target.value)
-                                    }
-                                    className="w-full px-4 py-3 border border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-transparent outline-none"
-                                    required
-                                />
+                            <p style={{ fontSize:10.5, fontWeight:600, letterSpacing:'.08em', textTransform:'uppercase', color:'rgba(0,0,0,0.28)', marginBottom:14 }}>Current password</p>
+                            <div style={{ marginBottom:18 }}>
+                                <Field label="Current Password" type="password" value={pwf.data.current_password} onChange={e=>pwf.setData('current_password',e.target.value)} error={pwf.errors.current_password} icon={Lock} required />
                             </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Confirm New Password
-                                </label>
-                                <input
-                                    type="password"
-                                    value={passwordForm.data.password_confirmation}
-                                    onChange={(e) =>
-                                        passwordForm.setData(
-                                            'password_confirmation',
-                                            e.target.value
-                                        )
-                                    }
-                                    className="w-full px-4 py-3 border border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-transparent outline-none"
-                                    required
-                                />
+                            <div style={{ height:1, background:'rgba(0,0,0,0.05)', margin:'4px 0 20px' }} />
+                            <p style={{ fontSize:10.5, fontWeight:600, letterSpacing:'.08em', textTransform:'uppercase', color:'rgba(0,0,0,0.28)', marginBottom:14 }}>New password</p>
+                            <div className="prof-grid" style={{ marginBottom:4 }}>
+                                <Field label="New Password"     type="password" value={pwf.data.password}              onChange={e=>pwf.setData('password',e.target.value)}              error={pwf.errors.password}              icon={KeyRound} required />
+                                <Field label="Confirm Password" type="password" value={pwf.data.password_confirmation} onChange={e=>pwf.setData('password_confirmation',e.target.value)} error={pwf.errors.password_confirmation} icon={KeyRound} required />
                             </div>
 
-                            <button
-                                type="submit"
-                                disabled={passwordForm.processing}
-                                className="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold rounded-lg transition-all disabled:opacity-50"
-                            >
-                                {passwordForm.processing
-                                    ? 'Updating...'
-                                    : 'Change Password'}
-                            </button>
+                            <div style={{ height:1, background:'rgba(0,0,0,0.05)', margin:'22px 0 18px' }} />
+                            {btn(pwf.processing, 'Change Password', 'Updating…', KeyRound)}
                         </form>
                     )}
                 </div>

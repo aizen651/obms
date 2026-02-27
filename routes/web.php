@@ -13,9 +13,7 @@ use App\Http\Controllers\JournalController;
 use Inertia\Inertia;
 
 // ── Home ──────────────────────────────────────────────────────────────────────
-Route::get('/', function () {
-    return Inertia::render('welcome');
-})->name('home');
+Route::get('/', [DashboardController::class, 'landing'])->name('landing');
 
 // ── Public: Books ─────────────────────────────────────────────────────────────
 Route::get('books',        [BookController::class, 'index'])->name('books');

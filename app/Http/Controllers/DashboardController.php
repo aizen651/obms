@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Book;
+use App\Models\Journal;
+use App\Models\Story;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -10,6 +13,17 @@ use Inertia\Response;
 
 class DashboardController extends Controller
 {
+   public function landing(): Response
+{
+    return Inertia::render('welcome', [
+        'stats' => [
+            'books'    => Book::count(),
+            'journals' => Journal::count(),
+            'ebooks'   => Story::approved()->count(),
+        ],
+    ]);
+}
+
     public function index(): Response
     {
         $user = Auth::user();
@@ -46,9 +60,9 @@ class DashboardController extends Controller
             ->get();
 
         return Inertia::render('User/Dashboard', [
-            'stats'         => $stats,
-            'currentBorrows'=> $currentBorrows,
-            'recentHistory' => $recentHistory,
+            'stats'          => $stats,
+            'currentBorrows' => $currentBorrows,
+            'recentHistory'  => $recentHistory,
         ]);
     }
 }

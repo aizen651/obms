@@ -90,7 +90,7 @@ class TransactionController extends Controller
         }
 
         Transaction::create([
-            'ref_nbr'              => 'BRW-' . strtoupper(Str::random(8)),
+            'ref_nbr'              => 'CTU-' . strtoupper(Str::random(8)),
             'book_id'              => $book->id,
             'borrower_id'          => $request->user()->id,
             'quantity'             => 1,

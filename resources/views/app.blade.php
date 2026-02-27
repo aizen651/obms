@@ -14,7 +14,7 @@
         <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet" />
         
          <!-- Add Eruda for mobile debugging -->
-        <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+      <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
         <script>eruda.init();</script>
         
         @routes
