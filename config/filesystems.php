@@ -55,7 +55,9 @@ return [
     'bucket' => 'books',
     'endpoint' => env('SUPABASE_URL').'/storage/v1/s3',
     'use_path_style_endpoint' => true,
-    ],
+    'throw' => true,
+    'report' => true,
+],
 
         's3' => [
             'driver' => 's3',
