@@ -101,8 +101,13 @@ class BookController extends Controller
         ]);
 
         if ($request->hasFile('book_image')) {
-            $validated['book_image'] = $request->file('book_image')->store('books', 'supabase');
-        }
+    try {
+        $path = $request->file('book_image')->store('books', 'supabase');
+        $validated['book_image'] = $path;
+    } catch (\Exception $e) {
+        dd($e->getMessage());
+    }
+}
 
         $validated['available_copies'] = $validated['total_copies'];
 
