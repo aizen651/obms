@@ -32,22 +32,19 @@ class ProfileController extends Controller
             'gender'     => ['nullable', 'in:male,female,other,prefer_not_to_say'],
         ]);
 
-        // Handle image upload to Supabase
         if ($request->hasFile('user_image')) {
-            // Delete old image from Supabase
+            // Delete old image
             if ($user->user_image) {
                 try {
                     $oldFilename = basename($user->user_image);
-                    Storage::disk('supabase_profiles')->delete($oldFilename);
-                } catch (\Exception $e) {
-                    // ignore
-                }
+                    Storage::disk('supabase_profile_images')->delete($oldFilename);
+                } catch (\Exception $e) {}
             }
 
-            $file = $request->file('user_image');
+            $file     = $request->file('user_image');
             $filename = time() . '_' . $file->getClientOriginalName();
-            Storage::disk('supabase_profiles')->putFileAs('', $file, $filename);
-            $validated['user_image'] = env('SUPABASE_URL') . '/storage/v1/object/public/profiles/' . $filename;
+            Storage::disk('supabase_profile_images')->putFileAs('', $file, $filename);
+            $validated['user_image'] = env('SUPABASE_URL') . '/storage/v1/object/public/profile-images/' . $filename;
         } else {
             unset($validated['user_image']);
         }
