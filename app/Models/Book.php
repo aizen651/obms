@@ -55,10 +55,11 @@ class Book extends Model
         });
     }
 
-   public function getImageUrlAttribute()
+  public function getImageUrlAttribute()
 {
     if (!$this->book_image) return null;
-    return $this->book_image; // already full URL stored in store()
+    // book_image already stores the full URL
+    return $this->book_image;
 }
 
     // Computed status that always reflects actual availability

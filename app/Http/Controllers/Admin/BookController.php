@@ -63,11 +63,11 @@ class BookController extends Controller
             'status'         => ['required', Rule::in(['available','unavailable','archived'])],
         ]);
 
-        // Upload image to Supabase
         if ($request->hasFile('book_image')) {
     $file = $request->file('book_image');
     $filename = time() . '_' . $file->getClientOriginalName();
-    $path = Storage::disk('supabase')->putFileAs('books', $file, $filename);
+    // Store directly in bucket root, no subfolder
+    Storage::disk('supabase')->putFileAs('', $file, $filename);
     $imageUrl = env('SUPABASE_URL') . '/storage/v1/object/public/books/' . $filename;
 }
 
@@ -100,10 +100,10 @@ class BookController extends Controller
     {
         // Remove image from Supabase if exists
         if ($book->book_image) {
-            $parsed = parse_url($book->book_image);
-            $path = ltrim($parsed['path'], '/'); // remove leading slash
-            Storage::disk('supabase')->delete($path);
-        }
+    // Extract just the filename from the full URL
+    $filename = basename($book->book_image);
+    Storage::disk('supabase')->delete($filename);
+}
 
         $book->delete();
 
