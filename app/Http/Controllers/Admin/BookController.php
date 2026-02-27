@@ -64,11 +64,12 @@ class BookController extends Controller
         ]);
 
         // Upload image to Supabase
-        $imageUrl = null;
         if ($request->hasFile('book_image')) {
-            $path = Storage::disk('supabase')->putFile('books', $request->file('book_image'));
-            $imageUrl = Storage::disk('supabase')->url($path);
-        }
+    $file = $request->file('book_image');
+    $filename = time() . '_' . $file->getClientOriginalName();
+    $path = Storage::disk('supabase')->putFileAs('books', $file, $filename);
+    $imageUrl = env('SUPABASE_URL') . '/storage/v1/object/public/books/' . $filename;
+}
 
         // Save book to database
         $book = Book::create([

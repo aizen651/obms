@@ -58,8 +58,7 @@ class Book extends Model
    public function getImageUrlAttribute()
 {
     if (!$this->book_image) return null;
-
-    return env('SUPABASE_URL') . '/storage/v1/object/public/books/' . basename($this->book_image);
+    return $this->book_image; // already full URL stored in store()
 }
 
     // Computed status that always reflects actual availability

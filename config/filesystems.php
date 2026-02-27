@@ -51,11 +51,12 @@ return [
     'driver' => 's3',
     'key' => env('SUPABASE_ANON_KEY'),
     'secret' => env('SUPABASE_SERVICE_ROLE_KEY'),
-    'region' => 'ap-southeast-2',
+    'region' => 'ap-southeast-1',  // ← change to ap-southeast-1 for Philippines
     'bucket' => 'books',
-    'endpoint' => env('SUPABASE_URL').'/storage/v1/s3',
+    'endpoint' => env('SUPABASE_URL') . '/storage/v1/s3',
     'use_path_style_endpoint' => true,
-    ],
+    'throw' => true,
+],
 
         's3' => [
             'driver' => 's3',
