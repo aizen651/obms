@@ -35,9 +35,9 @@ class ProfileController extends Controller
         // Handle image upload
         if ($request->hasFile('user_image')) {
             if ($user->user_image) {
-                Storage::disk('public')->delete($user->user_image);
+                Storage::disk('supabase')->delete($user->user_image);
             }
-            $validated['user_image'] = $request->file('user_image')->store('profile-images', 'public');
+            $validated['user_image'] = $request->file('user_image')->store('profile-images', 'supabase');
         }
 
         $user->update($validated);

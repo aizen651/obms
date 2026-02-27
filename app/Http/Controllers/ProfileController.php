@@ -43,9 +43,9 @@ class ProfileController extends Controller
         if ($request->hasFile('user_image')) {
             // Delete old image
             if ($user->user_image) {
-                Storage::disk('public')->delete($user->user_image);
+                Storage::disk('supabase')->delete($user->user_image);
             }
-            $user->user_image = $request->file('user_image')->store('user_images', 'public');
+            $user->user_image = $request->file('user_image')->store('user_images', 'supabase');
         }
 
         $user->firstname = $request->firstname;
@@ -82,7 +82,7 @@ class ProfileController extends Controller
         $user = Auth::user();
 
         if ($user->user_image) {
-            Storage::disk('public')->delete($user->user_image);
+            Storage::disk('supabase')->delete($user->user_image);
             $user->user_image = null;
             $user->save();
         }

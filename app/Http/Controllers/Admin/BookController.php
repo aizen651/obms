@@ -101,7 +101,7 @@ class BookController extends Controller
         ]);
 
         if ($request->hasFile('book_image')) {
-            $validated['book_image'] = $request->file('book_image')->store('books', 'public');
+            $validated['book_image'] = $request->file('book_image')->store('books', 'supabase');
         }
 
         $validated['available_copies'] = $validated['total_copies'];
@@ -134,9 +134,9 @@ class BookController extends Controller
 
         if ($request->hasFile('book_image')) {
             if ($book->book_image) {
-                Storage::disk('public')->delete($book->book_image);
+                Storage::disk('supabase')->delete($book->book_image);
             }
-            $validated['book_image'] = $request->file('book_image')->store('books', 'public');
+            $validated['book_image'] = $request->file('book_image')->store('books', 'supabase');
         } else {
             $validated['book_image'] = $book->book_image;
         }
@@ -163,7 +163,7 @@ class BookController extends Controller
         }
 
         if ($book->book_image) {
-            Storage::disk('public')->delete($book->book_image);
+            Storage::disk('supabase')->delete($book->book_image);
         }
 
         $book->delete();

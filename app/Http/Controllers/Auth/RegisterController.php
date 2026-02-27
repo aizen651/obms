@@ -36,7 +36,7 @@ class RegisterController extends Controller
 
         $imagePath = null;
         if ($request->hasFile('user_image')) {
-            $imagePath = $request->file('user_image')->store('user_images', 'public');
+            $imagePath = $request->file('user_image')->store('user_images', 'supabase');
         }
 
         $user = User::create([

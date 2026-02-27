@@ -64,7 +64,7 @@ class MagazineController extends Controller
         $this->adminOnly();
         $request->validate(['image' => 'required|image|max:5120']);
 
-        $path = $request->file('image')->store('magazine', 'public');
+        $path = $request->file('image')->store('magazine', 'supabase');
 
         // Return the full public URL — the model mutator will normalize it on save
         return response()->json([

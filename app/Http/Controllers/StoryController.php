@@ -85,7 +85,7 @@ class StoryController extends Controller
 
         $coverPath = null;
         if ($request->hasFile('cover_image')) {
-            $coverPath = $request->file('cover_image')->store('story-covers', 'public');
+            $coverPath = $request->file('cover_image')->store('story-covers', 'supabase');
         }
 
         $story = Story::create([
@@ -134,8 +134,8 @@ class StoryController extends Controller
         ]);
 
         if ($request->hasFile('cover_image')) {
-            if ($story->cover_image) Storage::disk('public')->delete($story->cover_image);
-            $story->cover_image = $request->file('cover_image')->store('story-covers', 'public');
+            if ($story->cover_image) Storage::disk('supabase')->delete($story->cover_image);
+            $story->cover_image = $request->file('cover_image')->store('story-covers', 'supabase');
         }
 
         $story->title     = $validated['title'];
@@ -159,7 +159,7 @@ class StoryController extends Controller
     public function destroy(Story $story)
     {
         abort_if($story->user_id !== auth()->id(), 403);
-        if ($story->cover_image) Storage::disk('public')->delete($story->cover_image);
+        if ($story->cover_image) Storage::disk('supabase')->delete($story->cover_image);
         $story->delete();
         return back()->with('success', 'Story deleted.');
     }

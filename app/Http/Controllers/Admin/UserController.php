@@ -91,7 +91,7 @@ class UserController extends Controller
         ]);
 
         if ($request->hasFile('user_image')) {
-            $validated['user_image'] = $request->file('user_image')->store('users', 'public');
+            $validated['user_image'] = $request->file('user_image')->store('users', 'supabase');
         }
 
         $validated['password'] = Hash::make($validated['password']);
@@ -118,9 +118,9 @@ class UserController extends Controller
 
         if ($request->hasFile('user_image')) {
             if ($user->user_image) {
-                \Storage::disk('public')->delete($user->user_image);
+                \Storage::disk('supabase')->delete($user->user_image);
             }
-            $validated['user_image'] = $request->file('user_image')->store('users', 'public');
+            $validated['user_image'] = $request->file('user_image')->store('users', 'supabase');
         }
 
         if (!empty($validated['password'])) {
@@ -137,7 +137,7 @@ class UserController extends Controller
     public function destroy(User $user)
     {
         if ($user->user_image) {
-            \Storage::disk('public')->delete($user->user_image);
+            \Storage::disk('supabase')->delete($user->user_image);
         }
 
         $user->delete();
