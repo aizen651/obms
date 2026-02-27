@@ -56,12 +56,11 @@ class Book extends Model
     }
 
     public function getImageUrlAttribute()
-    {
-        if ($this->book_image) {
-            return Storage::url($this->book_image);
-        }
-        return null;
-    }
+{
+    if (!$this->book_image) return null;
+    
+    return 'https://soptnwjadaotqwhnblvv.supabase.co/storage/v1/object/public/' . $this->book_image;
+}
 
     // Computed status that always reflects actual availability
     public function getDisplayStatusAttribute()
