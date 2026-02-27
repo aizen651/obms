@@ -261,10 +261,10 @@ export default function AdminAuthLayout({ children, header }) {
 
                         <Link href={route('admin.profile')} className="topbar-profile">
                             <div className="profile-avatar">
-                                {user.user_image
-                                    ? <img src={`/storage/${user.user_image}`} alt="Profile" />
-                                    : <span>{user.firstname?.charAt(0)}{user.lastname?.charAt(0)}</span>
-                                }
+                                {user.avatar_url
+        ? <img src={user.avatar_url} alt="Profile" />
+        : <span>{user.firstname?.charAt(0)}{user.lastname?.charAt(0)}</span>
+    }
                             </div>
                             <div className="profile-info">
                                 <p className="profile-name">{user.firstname} {user.lastname}</p>
