@@ -49,14 +49,13 @@ return [
         
     'supabase' => [
     'driver' => 's3',
-    'key' => env('SUPABASE_ANON_KEY'),
-    'secret' => env('SUPABASE_SERVICE_ROLE_KEY'),
-    'region' => 'ap-southeast-2',
-    'bucket' => 'books',
-    'endpoint' => env('SUPABASE_URL').'/storage/v1/s3',
+    'key' => env('SUPABASE_SERVICE_ROLE_KEY'), // service role
+    'secret' => '',                              // can be empty
+    'region' => 'ap-southeast-2',               // ignored by Supabase
+    'bucket' => env('SUPABASE_BUCKET', 'books'),
+    'endpoint' => env('SUPABASE_URL').'/storage/v1', 
     'use_path_style_endpoint' => true,
     'throw' => true,
-    'report' => true,
 ],
 
         's3' => [

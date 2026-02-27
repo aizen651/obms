@@ -3,188 +3,109 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Book;
-use App\Models\Category;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use Inertia\Inertia;
+use App\Models\Book;
+use Illuminate\Validation\Rule;
 
 class BookController extends Controller
 {
+    /**
+     * Display a listing of books with optional filters.
+     */
     public function index(Request $request)
     {
-        $query = Book::with('category');
+        $query = Book::query()->with('category');
 
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function($q) use ($search) {
-                $q->where('title', 'like', "%{$search}%")
-                  ->orWhere('author', 'like', "%{$search}%")
-                  ->orWhere('isbn', 'like', "%{$search}%")
-                  ->orWhere('publisher', 'like', "%{$search}%");
-            });
+        if ($search = $request->input('search')) {
+            $query->where('title', 'like', "%{$search}%")
+                  ->orWhere('author', 'like', "%{$search}%");
         }
 
-        if ($request->filled('category')) {
-            $query->where('category_id', $request->category);
+        if ($category = $request->input('category')) {
+            $query->where('category_id', $category);
         }
 
-        if ($request->filled('status')) {
-            $query->status($request->status);
+        if ($status = $request->input('status')) {
+            $query->where('status', $status);
         }
 
-        $sortColumn = $request->get('sort', 'created_at');
-        $sortDirection = $request->get('direction', 'desc');
-        $query->orderBy($sortColumn, $sortDirection);
+        $books = $query->orderBy($request->input('sort', 'title'), $request->input('direction', 'asc'))
+                       ->paginate(10)
+                       ->withQueryString();
 
-        $books = $query->paginate(10)->withQueryString();
-        $categories = Category::orderBy('name')->get();
-
-        return Inertia::render('Admin/Books', [
+        return inertia('Admin/Books', [
             'books' => $books,
-            'categories' => $categories,
-            'filters' => $request->only(['search', 'category', 'status', 'sort', 'direction'])
+            'categories' => \App\Models\Category::all(),
+            'filters' => $request->only(['search', 'category', 'status', 'sort', 'direction']),
         ]);
     }
 
-    public function show(Book $book)
-    {
-        $book->load([
-            'category',
-            'transactions' => function($query) {
-                $query->with('borrower')->orderBy('created_at', 'desc');
-            }
-        ]);
-
-        return Inertia::render('Admin/BookShow', [
-            'book' => $book
-        ]);
-    }
-
-    public function create()
-    {
-        $categories = Category::orderBy('name')->get();
-
-        return Inertia::render('Admin/BookCreate', [
-            'categories' => $categories
-        ]);
-    }
-
-    public function edit(Book $book)
-    {
-        $categories = Category::orderBy('name')->get();
-
-        return Inertia::render('Admin/BookEdit', [
-            'book' => $book,
-            'categories' => $categories
-        ]);
-    }
-
+    /**
+     * Store a newly created book in Supabase and database.
+     */
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'book_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'title' => 'required|string|max:255',
-            'isbn' => 'required|string|unique:books,isbn',
-            'category_id' => 'required|exists:categories,id',
-            'author' => 'required|string|max:255',
-            'publisher' => 'nullable|string|max:255',
+            'title'          => 'required|string|max:255',
+            'isbn'           => 'nullable|string|max:50',
+            'category_id'    => 'nullable|exists:categories,id',
+            'author'         => 'required|string|max:255',
+            'publisher'      => 'nullable|string|max:255',
             'published_year' => 'nullable|integer|min:1000|max:' . date('Y'),
-            'edition' => 'nullable|string|max:255',
-            'language' => 'nullable|string|max:255',
-            'pages' => 'nullable|integer|min:1',
-            'description' => 'nullable|string',
-            'total_copies' => 'required|integer|min:1',
-            'shelf_location' => 'nullable|string|max:255',
-            'status' => 'required|in:available,unavailable,archived',
+            'edition'        => 'nullable|string|max:50',
+            'language'       => 'nullable|string|max:50',
+            'pages'          => 'nullable|integer|min:1',
+            'description'    => 'nullable|string',
+            'book_image'     => 'nullable|image|max:2048', // 2MB
+            'total_copies'   => 'required|integer|min:1',
+            'shelf_location' => 'nullable|string|max:50',
+            'status'         => ['required', Rule::in(['available','unavailable','archived'])],
         ]);
 
+        // Upload image to Supabase
+        $imageUrl = null;
         if ($request->hasFile('book_image')) {
-            $path = $request->file('book_image')->store('books', 'supabase');
-            $validated['book_image'] = env('SUPABASE_URL')
-                . '/storage/v1/object/public/' 
-                . env('SUPABASE_BUCKET') 
-                . '/' 
-                . $path;
+            $path = Storage::disk('supabase')->putFile('books', $request->file('book_image'));
+            $imageUrl = Storage::disk('supabase')->url($path);
         }
 
-        $validated['available_copies'] = $validated['total_copies'];
-
-        Book::create($validated);
-
-        return redirect()->route('admin.books.index')->with('success', 'Book added successfully!');
-    }
-
-    public function update(Request $request, Book $book)
-    {
-        $validated = $request->validate([
-            'book_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'title' => 'required|string|max:255',
-            'isbn' => 'required|string|unique:books,isbn,' . $book->id,
-            'category_id' => 'required|exists:categories,id',
-            'author' => 'required|string|max:255',
-            'publisher' => 'nullable|string|max:255',
-            'published_year' => 'nullable|integer|min:1000|max:' . date('Y'),
-            'edition' => 'nullable|string|max:255',
-            'language' => 'nullable|string|max:255',
-            'pages' => 'nullable|integer|min:1',
-            'description' => 'nullable|string',
-            'total_copies' => 'required|integer|min:1',
-            'available_copies' => 'required|integer|min:0|lte:total_copies',
-            'shelf_location' => 'nullable|string|max:255',
-            'status' => 'required|in:available,unavailable,archived',
+        // Save book to database
+        $book = Book::create([
+            'title'          => $validated['title'],
+            'isbn'           => $validated['isbn'] ?? null,
+            'category_id'    => $validated['category_id'] ?? null,
+            'author'         => $validated['author'],
+            'publisher'      => $validated['publisher'] ?? null,
+            'published_year' => $validated['published_year'] ?? null,
+            'edition'        => $validated['edition'] ?? null,
+            'language'       => $validated['language'] ?? null,
+            'pages'          => $validated['pages'] ?? null,
+            'description'    => $validated['description'] ?? null,
+            'book_image'     => $imageUrl,
+            'total_copies'   => $validated['total_copies'],
+            'available_copies' => $validated['total_copies'], // start with all copies available
+            'shelf_location' => $validated['shelf_location'] ?? null,
+            'status'         => $validated['status'],
         ]);
 
-        if ($request->hasFile('book_image')) {
-            if ($book->book_image) {
-                $oldPath = str_replace(
-                    env('SUPABASE_URL') . '/storage/v1/object/public/' . env('SUPABASE_BUCKET') . '/',
-                    '',
-                    $book->book_image
-                );
-                Storage::disk('supabase')->delete($oldPath);
-            }
-
-            $path = $request->file('book_image')->store('books', 'supabase');
-            $validated['book_image'] = env('SUPABASE_URL')
-                . '/storage/v1/object/public/' 
-                . env('SUPABASE_BUCKET') 
-                . '/' 
-                . $path;
-        } else {
-            $validated['book_image'] = $book->book_image;
-        }
-
-        // Only override status if book is not archived (observer handles available/unavailable)
-        if ($book->status !== 'archived' || $validated['status'] === 'archived') {
-            $book->update($validated);
-        } else {
-            unset($validated['status']);
-            $book->update($validated);
-        }
-
-        return redirect()
-            ->route('admin.books.show', $book)
-            ->with('success', 'Book updated successfully!');
+        return redirect()->back()->with('success', 'Book added successfully!');
     }
 
+    /**
+     * Delete a book and optionally remove the image from Supabase.
+     */
     public function destroy(Book $book)
     {
-        if ($book->transactions()->whereIn('status', ['borrowed', 'overdue'])->exists()) {
-            return back()->withErrors(['error' => 'Cannot delete book with active borrows.']);
-        }
-
+        // Remove image from Supabase if exists
         if ($book->book_image) {
-            $oldPath = str_replace(
-                env('SUPABASE_URL') . '/storage/v1/object/public/' . env('SUPABASE_BUCKET') . '/',
-                '',
-                $book->book_image
-            );
-            Storage::disk('supabase')->delete($oldPath);
+            $parsed = parse_url($book->book_image);
+            $path = ltrim($parsed['path'], '/'); // remove leading slash
+            Storage::disk('supabase')->delete($path);
         }
 
         $book->delete();
 
-        return redirect()->route('admin.books.index')->with('success', 'Book deleted successfully!');
+        return response()->json(['success' => true]);
     }
 }
