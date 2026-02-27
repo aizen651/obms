@@ -101,12 +101,9 @@ class BookController extends Controller
         ]);
 
         if ($request->hasFile('book_image')) {
-    try {
-        $path = $request->file('book_image')->store('books', 'supabase');
-        $validated['book_image'] = $path;
-    } catch (\Exception $e) {
-        dd($e->getMessage());
-    }
+    $path = $request->file('book_image')->store('books', 'supabase');
+    // Save full public URL in DB
+    $validated['book_image'] = env('SUPABASE_URL') . '/storage/v1/object/public/' . env('SUPABASE_BUCKET') . '/' . $path;
 }
 
         $validated['available_copies'] = $validated['total_copies'];
@@ -138,13 +135,18 @@ class BookController extends Controller
         ]);
 
         if ($request->hasFile('book_image')) {
-            if ($book->book_image) {
-                Storage::disk('supabase')->delete($book->book_image);
-            }
-            $validated['book_image'] = $request->file('book_image')->store('books', 'supabase');
-        } else {
-            $validated['book_image'] = $book->book_image;
-        }
+    if ($book->book_image) {
+        // Delete old image from Supabase
+        $oldPath = str_replace(env('SUPABASE_URL') . '/storage/v1/object/public/' . env('SUPABASE_BUCKET') . '/', '', $book->book_image);
+        Storage::disk('supabase')->delete($oldPath);
+    }
+
+    $path = $request->file('book_image')->store('books', 'supabase');
+    // Save full public URL in DB
+    $validated['book_image'] = env('SUPABASE_URL') . '/storage/v1/object/public/' . env('SUPABASE_BUCKET') . '/' . $path;
+} else {
+    $validated['book_image'] = $book->book_image;
+}
 
         // Don't override status if it's archived - admin choice
         // For available/unavailable, the observer will handle it
