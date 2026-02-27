@@ -6,20 +6,20 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use App\Models\Book;
+use App\Models\Category;
 use Illuminate\Validation\Rule;
 
 class BookController extends Controller
 {
-    /**
-     * Display a listing of books with optional filters.
-     */
     public function index(Request $request)
     {
         $query = Book::query()->with('category');
 
         if ($search = $request->input('search')) {
-            $query->where('title', 'like', "%{$search}%")
+            $query->where(function($q) use ($search) {
+                $q->where('title', 'like', "%{$search}%")
                   ->orWhere('author', 'like', "%{$search}%");
+            });
         }
 
         if ($category = $request->input('category')) {
@@ -35,15 +35,19 @@ class BookController extends Controller
                        ->withQueryString();
 
         return inertia('Admin/Books', [
-            'books' => $books,
-            'categories' => \App\Models\Category::all(),
-            'filters' => $request->only(['search', 'category', 'status', 'sort', 'direction']),
+            'books'      => $books,
+            'categories' => Category::all(),
+            'filters'    => $request->only(['search', 'category', 'status', 'sort', 'direction']),
         ]);
     }
 
-    /**
-     * Store a newly created book in Supabase and database.
-     */
+    public function show(Book $book)
+    {
+        return inertia('Admin/BookShow', [
+            'book' => $book->load('category'),
+        ]);
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -57,22 +61,83 @@ class BookController extends Controller
             'language'       => 'nullable|string|max:50',
             'pages'          => 'nullable|integer|min:1',
             'description'    => 'nullable|string',
-            'book_image'     => 'nullable|image|max:2048', // 2MB
+            'book_image'     => 'nullable|image|max:2048',
             'total_copies'   => 'required|integer|min:1',
             'shelf_location' => 'nullable|string|max:50',
-            'status'         => ['required', Rule::in(['available','unavailable','archived'])],
+            'status'         => ['required', Rule::in(['available', 'unavailable', 'archived'])],
         ]);
 
+        $imageUrl = null;
         if ($request->hasFile('book_image')) {
-    $file = $request->file('book_image');
-    $filename = time() . '_' . $file->getClientOriginalName();
-    // Store directly in bucket root, no subfolder
-    Storage::disk('supabase')->putFileAs('', $file, $filename);
-    $imageUrl = env('SUPABASE_URL') . '/storage/v1/object/public/books/' . $filename;
-}
+            $file     = $request->file('book_image');
+            $filename = time() . '_' . $file->getClientOriginalName();
+            Storage::disk('supabase')->putFileAs('', $file, $filename);
+            $imageUrl = env('SUPABASE_URL') . '/storage/v1/object/public/books/' . $filename;
+        }
 
-        // Save book to database
-        $book = Book::create([
+        Book::create([
+            'title'            => $validated['title'],
+            'isbn'             => $validated['isbn'] ?? null,
+            'category_id'      => $validated['category_id'] ?? null,
+            'author'           => $validated['author'],
+            'publisher'        => $validated['publisher'] ?? null,
+            'published_year'   => $validated['published_year'] ?? null,
+            'edition'          => $validated['edition'] ?? null,
+            'language'         => $validated['language'] ?? null,
+            'pages'            => $validated['pages'] ?? null,
+            'description'      => $validated['description'] ?? null,
+            'book_image'       => $imageUrl,
+            'total_copies'     => $validated['total_copies'],
+            'available_copies' => $validated['total_copies'],
+            'shelf_location'   => $validated['shelf_location'] ?? null,
+            'status'           => $validated['status'],
+        ]);
+
+        return redirect()->back()->with('success', 'Book added successfully!');
+    }
+
+    public function edit(Book $book)
+    {
+        return inertia('Admin/BookEdit', [
+            'book'       => $book->load('category'),
+            'categories' => Category::all(),
+        ]);
+    }
+
+    public function update(Request $request, Book $book)
+    {
+        $validated = $request->validate([
+            'title'          => 'required|string|max:255',
+            'isbn'           => 'nullable|string|max:50',
+            'category_id'    => 'nullable|exists:categories,id',
+            'author'         => 'required|string|max:255',
+            'publisher'      => 'nullable|string|max:255',
+            'published_year' => 'nullable|integer|min:1000|max:' . date('Y'),
+            'edition'        => 'nullable|string|max:50',
+            'language'       => 'nullable|string|max:50',
+            'pages'          => 'nullable|integer|min:1',
+            'description'    => 'nullable|string',
+            'book_image'     => 'nullable|image|max:2048',
+            'total_copies'   => 'required|integer|min:1',
+            'shelf_location' => 'nullable|string|max:50',
+            'status'         => ['required', Rule::in(['available', 'unavailable', 'archived'])],
+        ]);
+
+        $imageUrl = $book->book_image;
+        if ($request->hasFile('book_image')) {
+            // Delete old image from Supabase
+            if ($book->book_image) {
+                $oldFilename = basename($book->book_image);
+                Storage::disk('supabase')->delete($oldFilename);
+            }
+            // Upload new image
+            $file     = $request->file('book_image');
+            $filename = time() . '_' . $file->getClientOriginalName();
+            Storage::disk('supabase')->putFileAs('', $file, $filename);
+            $imageUrl = env('SUPABASE_URL') . '/storage/v1/object/public/books/' . $filename;
+        }
+
+        $book->update([
             'title'          => $validated['title'],
             'isbn'           => $validated['isbn'] ?? null,
             'category_id'    => $validated['category_id'] ?? null,
@@ -85,25 +150,19 @@ class BookController extends Controller
             'description'    => $validated['description'] ?? null,
             'book_image'     => $imageUrl,
             'total_copies'   => $validated['total_copies'],
-            'available_copies' => $validated['total_copies'], // start with all copies available
             'shelf_location' => $validated['shelf_location'] ?? null,
             'status'         => $validated['status'],
         ]);
 
-        return redirect()->back()->with('success', 'Book added successfully!');
+        return redirect()->back()->with('success', 'Book updated successfully!');
     }
 
-    /**
-     * Delete a book and optionally remove the image from Supabase.
-     */
     public function destroy(Book $book)
     {
-        // Remove image from Supabase if exists
         if ($book->book_image) {
-    // Extract just the filename from the full URL
-    $filename = basename($book->book_image);
-    Storage::disk('supabase')->delete($filename);
-}
+            $filename = basename($book->book_image);
+            Storage::disk('supabase')->delete($filename);
+        }
 
         $book->delete();
 
