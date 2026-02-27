@@ -37,13 +37,13 @@ class ProfileController extends Controller
             if ($user->user_image) {
                 try {
                     $oldFilename = basename($user->user_image);
-                    Storage::disk('supabase_profile_images')->delete($oldFilename);
+                    Storage::disk('supabase_profiles')->delete($oldFilename);
                 } catch (\Exception $e) {}
             }
 
             $file     = $request->file('user_image');
             $filename = time() . '_' . $file->getClientOriginalName();
-            Storage::disk('supabase_profile_images')->putFileAs('', $file, $filename);
+            Storage::disk('supabase_profiles')->putFileAs('', $file, $filename);
             $validated['user_image'] = env('SUPABASE_URL') . '/storage/v1/object/public/profile-images/' . $filename;
         } else {
             unset($validated['user_image']);
