@@ -124,13 +124,14 @@ class User extends Authenticatable
     public function getAvatarUrlAttribute(): ?string
 {
     if (!$this->user_image) return null;
-    
-    // If already a full URL
+
+    // Already a full URL
     if (str_starts_with($this->user_image, 'http')) {
         return $this->user_image;
     }
-    
-    // Build Supabase URL
-    return env('SUPABASE_URL') . '/storage/v1/object/public/profiles/' . basename($this->user_image);
+
+    // Legacy path stored as "users/filename.jpg"
+    $filename = basename($this->user_image);
+    return env('SUPABASE_URL') . '/storage/v1/object/public/user_images/' . $filename;
 }
 }

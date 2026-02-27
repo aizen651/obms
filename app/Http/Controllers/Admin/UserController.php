@@ -91,8 +91,11 @@ class UserController extends Controller
         ]);
 
         if ($request->hasFile('user_image')) {
-            $validated['user_image'] = $request->file('user_image')->store('users', 'supabase');
-        }
+        $file     = $request->file('user_image');
+        $filename = time() . '_' . $file->getClientOriginalName();
+        \Storage::disk('supabase_users')->putFileAs('', $file, $filename);
+        $validated['user_image'] = env('SUPABASE_URL') . '/storage/v1/object/public/user_images/' . $filename;
+    }
 
         $validated['password'] = Hash::make($validated['password']);
 
@@ -117,11 +120,20 @@ class UserController extends Controller
         ]);
 
         if ($request->hasFile('user_image')) {
-            if ($user->user_image) {
-                \Storage::disk('supabase')->delete($user->user_image);
-            }
-            $validated['user_image'] = $request->file('user_image')->store('users', 'supabase');
+        // Delete old image
+        if ($user->user_image && str_starts_with($user->user_image, 'http')) {
+            try {
+                \Storage::disk('supabase_users')->delete(basename($user->user_image));
+            } catch (\Exception $e) {}
         }
+
+        $file     = $request->file('user_image');
+        $filename = time() . '_' . $file->getClientOriginalName();
+        \Storage::disk('supabase_users')->putFileAs('', $file, $filename);
+        $validated['user_image'] = env('SUPABASE_URL') . '/storage/v1/object/public/user_images/' . $filename;
+    } else {
+        unset($validated['user_image']);
+    }
 
         if (!empty($validated['password'])) {
             $validated['password'] = Hash::make($validated['password']);
@@ -137,8 +149,10 @@ class UserController extends Controller
     public function destroy(User $user)
     {
         if ($user->user_image) {
-            \Storage::disk('supabase')->delete($user->user_image);
-        }
+        try {
+            \Storage::disk('supabase_users')->delete(basename($user->user_image));
+        } catch (\Exception $e) {}
+    }
 
         $user->delete();
 

@@ -15,8 +15,8 @@ const Avatar = ({ user, size = 'sm' }) => {
     const cls = size === 'lg' ? 'w-20 h-20 text-2xl font-bold' : 'w-10 h-10 text-sm font-semibold';
     return (
         <div className={`${cls} rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white flex-shrink-0 shadow`}>
-            {user.user_image
-                ? <img src={`/storage/${user.user_image}`} alt={user.firstname} className="w-full h-full object-cover rounded-full" />
+            {user.avatar_url
+                ? <img src={user.avatar_url} alt={user.firstname} className="w-full h-full object-cover rounded-full" />
                 : <span>{user.firstname?.charAt(0)}{user.lastname?.charAt(0)}</span>}
         </div>
     );
