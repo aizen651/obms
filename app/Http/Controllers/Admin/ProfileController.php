@@ -25,19 +25,31 @@ class ProfileController extends Controller
 
         $validated = $request->validate([
             'user_image' => ['nullable', 'image', 'max:2048'],
-            'firstname' => ['required', 'string', 'max:255'],
-            'lastname' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'unique:users,email,' . $user->id],
-            'contact' => ['nullable', 'string', 'max:20'],
-            'gender' => ['nullable', 'in:male,female,other'],
+            'firstname'  => ['required', 'string', 'max:255'],
+            'lastname'   => ['required', 'string', 'max:255'],
+            'email'      => ['required', 'email', 'unique:users,email,' . $user->id],
+            'contact'    => ['nullable', 'string', 'max:20'],
+            'gender'     => ['nullable', 'in:male,female,other,prefer_not_to_say'],
         ]);
 
-        // Handle image upload
+        // Handle image upload to Supabase
         if ($request->hasFile('user_image')) {
+            // Delete old image from Supabase
             if ($user->user_image) {
-                Storage::disk('supabase')->delete($user->user_image);
+                try {
+                    $oldFilename = basename($user->user_image);
+                    Storage::disk('supabase_profiles')->delete($oldFilename);
+                } catch (\Exception $e) {
+                    // ignore
+                }
             }
-            $validated['user_image'] = $request->file('user_image')->store('profile-images', 'supabase');
+
+            $file = $request->file('user_image');
+            $filename = time() . '_' . $file->getClientOriginalName();
+            Storage::disk('supabase_profiles')->putFileAs('', $file, $filename);
+            $validated['user_image'] = env('SUPABASE_URL') . '/storage/v1/object/public/profiles/' . $filename;
+        } else {
+            unset($validated['user_image']);
         }
 
         $user->update($validated);
@@ -49,7 +61,7 @@ class ProfileController extends Controller
     {
         $validated = $request->validate([
             'current_password' => ['required', 'current_password'],
-            'password' => ['required', 'confirmed', Password::defaults()],
+            'password'         => ['required', 'confirmed', Password::defaults()],
         ]);
 
         Auth::user()->update([

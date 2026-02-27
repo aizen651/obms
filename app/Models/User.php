@@ -25,7 +25,7 @@ class User extends Authenticatable
         'last_seen_at',
     ];
 
-    protected $appends = ['member_id', 'full_name'];
+    protected $appends = ['member_id', 'full_name', 'avatar_url'];
 
     protected $hidden = [
         'password',
@@ -122,7 +122,15 @@ class User extends Authenticatable
     }
 
     public function getAvatarUrlAttribute(): ?string
-    {
-        return $this->user_image ? asset('storage/' . $this->user_image) : null;
+{
+    if (!$this->user_image) return null;
+    
+    // If already a full URL
+    if (str_starts_with($this->user_image, 'http')) {
+        return $this->user_image;
     }
+    
+    // Build Supabase URL
+    return env('SUPABASE_URL') . '/storage/v1/object/public/profiles/' . basename($this->user_image);
+}
 }

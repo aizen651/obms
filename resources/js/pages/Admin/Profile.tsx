@@ -4,9 +4,6 @@ import AdminAuthLayout from '@/layouts/AdminAuthLayout';
 import { User, Lock, Camera, Save, KeyRound, Shield, Mail, Phone, Venus, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 
-/* ─────────────────────────────────────────
-   Floating label input
-───────────────────────────────────────── */
 const Field = ({ label, type = 'text', value, onChange, error, required, icon: Icon }) => (
     <div style={{ position: 'relative', marginBottom: 0 }}>
         <div style={{ position: 'relative' }}>
@@ -14,7 +11,6 @@ const Field = ({ label, type = 'text', value, onChange, error, required, icon: I
                 <span style={{
                     position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)',
                     color: 'rgba(0,0,0,0.25)', display: 'flex', pointerEvents: 'none', zIndex: 1,
-                    transition: 'color 0.15s',
                 }}>
                     <Icon size={15} strokeWidth={1.75} />
                 </span>
@@ -29,41 +25,22 @@ const Field = ({ label, type = 'text', value, onChange, error, required, icon: I
                     width: '100%',
                     padding: Icon ? '20px 14px 8px 40px' : '20px 14px 8px 14px',
                     border: `1.5px solid ${error ? '#f43f5e' : '#e8e8f0'}`,
-                    borderRadius: 12,
-                    fontSize: 14,
+                    borderRadius: 12, fontSize: 14,
                     fontFamily: "'Plus Jakarta Sans', sans-serif",
-                    color: '#0f0e17',
-                    background: '#fafafa',
-                    outline: 'none',
+                    color: '#0f0e17', background: '#fafafa', outline: 'none',
                     boxSizing: 'border-box',
                     transition: 'border-color 0.18s, box-shadow 0.18s, background 0.18s',
                 }}
-                onFocus={e => {
-                    e.target.style.borderColor = '#4f46e5';
-                    e.target.style.background = '#fff';
-                    e.target.style.boxShadow = '0 0 0 3px rgba(79,70,229,0.1)';
-                }}
-                onBlur={e => {
-                    e.target.style.borderColor = error ? '#f43f5e' : '#e8e8f0';
-                    e.target.style.background = '#fafafa';
-                    e.target.style.boxShadow = 'none';
-                }}
+                onFocus={e => { e.target.style.borderColor = '#4f46e5'; e.target.style.background = '#fff'; e.target.style.boxShadow = '0 0 0 3px rgba(79,70,229,0.1)'; }}
+                onBlur={e => { e.target.style.borderColor = error ? '#f43f5e' : '#e8e8f0'; e.target.style.background = '#fafafa'; e.target.style.boxShadow = 'none'; }}
             />
             <label style={{
-                position: 'absolute',
-                left: Icon ? 40 : 14,
-                top: '50%',
-                transform: 'translateY(-50%)',
-                fontSize: 14,
-                color: '#b0adb8',
-                pointerEvents: 'none',
-                transition: 'all 0.18s cubic-bezier(.4,0,.2,1)',
-                transformOrigin: 'left top',
-                padding: '0 2px',
+                position: 'absolute', left: Icon ? 40 : 14, top: '50%',
+                transform: 'translateY(-50%)', fontSize: 14, color: '#b0adb8',
+                pointerEvents: 'none', transition: 'all 0.18s cubic-bezier(.4,0,.2,1)',
+                transformOrigin: 'left top', padding: '0 2px',
                 fontFamily: "'Plus Jakarta Sans', sans-serif",
-            }}
-                className="float-lbl"
-            >{label}</label>
+            }} className="float-lbl">{label}</label>
         </div>
         {error && <p style={{ fontSize: 11, color: '#f43f5e', marginTop: 5, fontWeight: 500 }}>{error}</p>}
         <style>{`
@@ -74,22 +51,17 @@ const Field = ({ label, type = 'text', value, onChange, error, required, icon: I
                 font-weight: 600 !important;
                 background: #fff !important;
                 padding: 0 5px !important;
-                left: ${Icon ? '12px' : '12px'} !important;
+                left: 12px !important;
             }
         `}</style>
     </div>
 );
 
-/* ─────────────────────────────────────────
-   Info tile (read-only display row)
-───────────────────────────────────────── */
 const InfoTile = ({ label, value, icon: Icon, color }) => (
     <div style={{
         display: 'flex', alignItems: 'center', gap: 14,
-        padding: '14px 18px',
-        background: '#fafafa',
-        borderRadius: 12,
-        border: '1px solid #f0f0f8',
+        padding: '14px 18px', background: '#fafafa',
+        borderRadius: 12, border: '1px solid #f0f0f8',
     }}>
         <div style={{
             width: 38, height: 38, borderRadius: 10, flexShrink: 0,
@@ -109,7 +81,7 @@ export default function Profile() {
     const { auth } = usePage().props;
     const u = auth.user;
     const [tab, setTab] = useState('profile');
-    const [preview, setPreview] = useState(u.user_image ? `/storage/${u.user_image}` : null);
+    const [preview, setPreview] = useState(u.avatar_url || null);
 
     const pf  = useForm({ user_image: null, firstname: u.firstname || '', lastname: u.lastname || '', email: u.email || '', contact: u.contact || '', gender: u.gender || '' });
     const pwf = useForm({ current_password: '', password: '', password_confirmation: '' });
@@ -119,7 +91,7 @@ export default function Profile() {
         if (!file) return;
         pf.setData('user_image', file);
         const r = new FileReader();
-        r.onloadend = () => setPreview(r.result);
+        r.onloadend = () => setPreview(r.result as string);
         r.readAsDataURL(file);
     };
 
@@ -127,8 +99,12 @@ export default function Profile() {
         e.preventDefault();
         pf.post('/admin/profile/update', {
             preserveScroll: true,
-            onSuccess: () => toast.success('Profile updated!'),
-            onError:   () => toast.error('Failed to update profile.'),
+            onSuccess: (page: any) => {
+                const updatedUser = page.props.auth?.user;
+                if (updatedUser?.avatar_url) setPreview(updatedUser.avatar_url);
+                toast.success('Profile updated!');
+            },
+            onError: () => toast.error('Failed to update profile.'),
         });
     };
 
@@ -137,11 +113,11 @@ export default function Profile() {
         pwf.put('/admin/profile/password', {
             preserveScroll: true,
             onSuccess: () => { pwf.reset(); toast.success('Password changed!'); },
-            onError:   () => toast.error('Failed to change password.'),
+            onError: () => toast.error('Failed to change password.'),
         });
     };
 
-    const btn = (processing, label, LoadLabel, Icon) => (
+    const SubmitBtn = ({ processing, label, loadLabel, Icon }) => (
         <button
             type="submit"
             disabled={processing}
@@ -149,20 +125,17 @@ export default function Profile() {
                 display: 'flex', alignItems: 'center', gap: 8,
                 padding: '12px 24px',
                 background: processing ? '#c7c4f0' : 'linear-gradient(135deg,#4f46e5,#2563eb)',
-                color: '#fff',
-                fontFamily: "'Plus Jakarta Sans', sans-serif",
-                fontSize: 13.5, fontWeight: 600,
-                border: 'none', borderRadius: 11,
+                color: '#fff', fontFamily: "'Plus Jakarta Sans', sans-serif",
+                fontSize: 13.5, fontWeight: 600, border: 'none', borderRadius: 11,
                 cursor: processing ? 'not-allowed' : 'pointer',
                 boxShadow: '0 4px 14px rgba(79,70,229,0.28)',
-                transition: 'opacity 0.15s, transform 0.15s',
-                marginTop: 4,
+                transition: 'opacity 0.15s, transform 0.15s', marginTop: 4,
             }}
             onMouseEnter={e => { if (!processing) e.currentTarget.style.transform = 'translateY(-1px)'; }}
             onMouseLeave={e => { e.currentTarget.style.transform = 'none'; }}
         >
             {processing
-                ? <><span style={{ width:14,height:14,border:'2px solid rgba(255,255,255,0.4)',borderTopColor:'#fff',borderRadius:'50%',animation:'spin .7s linear infinite',display:'inline-block' }} />{LoadLabel}</>
+                ? <><span style={{ width:14,height:14,border:'2px solid rgba(255,255,255,0.4)',borderTopColor:'#fff',borderRadius:'50%',animation:'spin .7s linear infinite',display:'inline-block' }} />{loadLabel}</>
                 : <><Icon size={14} strokeWidth={2} />{label}</>
             }
         </button>
@@ -177,10 +150,8 @@ export default function Profile() {
                 @keyframes spin { to { transform: rotate(360deg); } }
                 @keyframes fadeup { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:none; } }
                 .prof-page * { box-sizing: border-box; }
-
                 .prof-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
                 .prof-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
-
                 @media (max-width: 680px) {
                     .prof-grid   { grid-template-columns: 1fr; }
                     .prof-grid-3 { grid-template-columns: 1fr 1fr; }
@@ -194,24 +165,19 @@ export default function Profile() {
 
             <div className="prof-page" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", maxWidth: 860, margin: '0 auto' }}>
 
-                {/* ── Header card ── */}
+                {/* Header card */}
                 <div style={{
-                    background: '#fff',
-                    borderRadius: 20,
+                    background: '#fff', borderRadius: 20,
                     border: '1px solid rgba(0,0,0,0.07)',
                     boxShadow: '0 2px 16px rgba(0,0,0,0.05)',
-                    overflow: 'hidden',
-                    marginBottom: 18,
-                    animation: 'fadeup .3s ease',
+                    overflow: 'hidden', marginBottom: 18, animation: 'fadeup .3s ease',
                 }}>
                     {/* Banner */}
                     <div style={{
                         height: 96,
                         background: 'linear-gradient(120deg, #eef2ff 0%, #e0e7ff 40%, #dbeafe 100%)',
-                        position: 'relative',
-                        overflow: 'hidden',
+                        position: 'relative', overflow: 'hidden',
                     }}>
-                        {/* Decorative circles */}
                         <div style={{ position:'absolute', top:-30, right:-30, width:140, height:140, borderRadius:'50%', background:'rgba(79,70,229,0.06)' }} />
                         <div style={{ position:'absolute', bottom:-20, left:'30%', width:100, height:100, borderRadius:'50%', background:'rgba(37,99,235,0.05)' }} />
                         <div style={{ position:'absolute', top:10, left:10, width:60, height:60, borderRadius:'50%', background:'rgba(79,70,229,0.04)' }} />
@@ -230,7 +196,10 @@ export default function Profile() {
                                     border:'4px solid #fff',
                                     boxShadow:'0 4px 16px rgba(79,70,229,0.2)',
                                 }}>
-                                    {preview ? <img src={preview} alt="" style={{ width:'100%',height:'100%',objectFit:'cover' }} /> : <span>{u.firstname?.charAt(0)}{u.lastname?.charAt(0)}</span>}
+                                    {preview
+                                        ? <img src={preview} alt="avatar" style={{ width:'100%',height:'100%',objectFit:'cover' }} />
+                                        : <span>{u.firstname?.charAt(0)}{u.lastname?.charAt(0)}</span>
+                                    }
                                 </div>
                                 <label style={{
                                     position:'absolute', bottom:2, right:2,
@@ -275,14 +244,14 @@ export default function Profile() {
                     {/* Info tiles */}
                     <div style={{ padding:'0 28px 24px' }}>
                         <div className="prof-grid-3" style={{ gap:12 }}>
-                            <InfoTile label="Email"   value={u.email}   icon={Mail}  color="#4f46e5" />
-                            <InfoTile label="Phone"   value={u.contact} icon={Phone} color="#2563eb" />
-                            <InfoTile label="Gender"  value={u.gender}  icon={Venus} color="#0891b2" />
+                            <InfoTile label="Email"  value={u.email}   icon={Mail}  color="#4f46e5" />
+                            <InfoTile label="Phone"  value={u.contact} icon={Phone} color="#2563eb" />
+                            <InfoTile label="Gender" value={u.gender}  icon={Venus} color="#0891b2" />
                         </div>
                     </div>
                 </div>
 
-                {/* ── Tab nav ── */}
+                {/* Tab nav */}
                 <div className="prof-tabs-row" style={{ display:'flex', gap:4, marginBottom:16, background:'#f1f2f8', borderRadius:13, padding:4 }}>
                     {[
                         { id:'profile',  label:'Edit Profile',    icon:<User size={13} strokeWidth={2} /> },
@@ -290,12 +259,9 @@ export default function Profile() {
                     ].map(({ id, label, icon }) => (
                         <button key={id} onClick={() => setTab(id)} style={{
                             flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:7,
-                            padding:'9px 18px',
-                            borderRadius:10,
-                            fontSize:13,
+                            padding:'9px 18px', borderRadius:10, fontSize:13,
                             fontFamily:"'Plus Jakarta Sans',sans-serif",
-                            cursor:'pointer', border:'none',
-                            transition:'all 0.18s',
+                            cursor:'pointer', border:'none', transition:'all 0.18s',
                             color: tab===id ? '#4f46e5' : 'rgba(0,0,0,0.42)',
                             background: tab===id ? '#fff' : 'transparent',
                             boxShadow: tab===id ? '0 1px 6px rgba(0,0,0,0.09),0 0 0 1px rgba(79,70,229,0.11)' : 'none',
@@ -306,14 +272,12 @@ export default function Profile() {
                     ))}
                 </div>
 
-                {/* ── Form card ── */}
+                {/* Form card */}
                 <div key={tab} style={{
-                    background:'#fff',
-                    borderRadius:20,
+                    background:'#fff', borderRadius:20,
                     border:'1px solid rgba(0,0,0,0.07)',
                     boxShadow:'0 2px 16px rgba(0,0,0,0.05)',
-                    overflow:'hidden',
-                    animation:'fadeup .22s ease',
+                    overflow:'hidden', animation:'fadeup .22s ease',
                 }}>
                     {/* Form header */}
                     <div style={{
@@ -370,7 +334,7 @@ export default function Profile() {
                                         }}
                                         onFocus={e=>{e.target.style.borderColor='#4f46e5';e.target.style.boxShadow='0 0 0 3px rgba(79,70,229,0.1)';e.target.style.background='#fff';}}
                                         onBlur={e=>{e.target.style.borderColor='#e8e8f0';e.target.style.boxShadow='none';e.target.style.background='#fafafa';}}
-                                    >
+       >
                                         <option value="">Select gender</option>
                                         <option value="male">Male</option>
                                         <option value="female">Female</option>
@@ -387,7 +351,7 @@ export default function Profile() {
                             </div>
 
                             <div style={{ height:1, background:'rgba(0,0,0,0.05)', margin:'22px 0 18px' }} />
-                            {btn(pf.processing, 'Save Changes', 'Saving…', Save)}
+                            <SubmitBtn processing={pf.processing} label="Save Changes" loadLabel="Saving…" Icon={Save} />
                         </form>
                     )}
 
@@ -416,7 +380,7 @@ export default function Profile() {
                             </div>
 
                             <div style={{ height:1, background:'rgba(0,0,0,0.05)', margin:'22px 0 18px' }} />
-                            {btn(pwf.processing, 'Change Password', 'Updating…', KeyRound)}
+                            <SubmitBtn processing={pwf.processing} label="Change Password" loadLabel="Updating…" Icon={KeyRound} />
                         </form>
                     )}
                 </div>
