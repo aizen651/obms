@@ -1,30 +1,28 @@
-import tailwindcss from '@tailwindcss/vite';
-import react from '@vitejs/plugin-react';
-import laravel from 'laravel-vite-plugin';
-import { defineConfig } from 'vite';
-
-const isProd = process.env.NODE_ENV === 'production';
-
-const plugins: any[] = [
-    laravel({
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var vite_1 = require("@tailwindcss/vite");
+var plugin_react_1 = require("@vitejs/plugin-react");
+var laravel_vite_plugin_1 = require("laravel-vite-plugin");
+var vite_2 = require("vite");
+var isProd = process.env.NODE_ENV === 'production';
+var plugins = [
+    (0, laravel_vite_plugin_1.default)({
         input: ['resources/css/app.css', 'resources/js/app.tsx'],
         ssr: 'resources/js/ssr.tsx',
         refresh: true,
     }),
-    react({
+    (0, plugin_react_1.default)({
         babel: {
             plugins: ['babel-plugin-react-compiler'],
         },
     }),
-    tailwindcss(),
+    (0, vite_1.default)(),
 ];
-
 if (!isProd) {
-    const { wayfinder } = await import('@laravel/vite-plugin-wayfinder');
+    var wayfinder = (await Promise.resolve().then(function () { return require('@laravel/vite-plugin-wayfinder'); })).wayfinder;
     plugins.push(wayfinder({ formVariants: true }));
 }
-
-export default defineConfig({
+exports.default = (0, vite_2.defineConfig)({
     build: {
         chunkSizeWarningLimit: 1000,
         rollupOptions: {
@@ -36,7 +34,7 @@ export default defineConfig({
             },
         },
     },
-    plugins,
+    plugins: plugins,
     server: {
         hmr: {
             host: 'localhost',
