@@ -1,20 +1,41 @@
 <?php
 
-use Illuminate\Foundation\Application;
 use Illuminate\Http\Request;
 
 define('LARAVEL_START', microtime(true));
 
-// Determine if the application is in maintenance mode...
+// Create writable directories in /tmp
+foreach ([
+    '/tmp/storage/framework/views',
+    '/tmp/storage/framework/cache/data',
+    '/tmp/storage/framework/sessions',
+    '/tmp/storage/logs',
+    '/tmp/storage/app/public',
+    '/tmp/storage/bootstrap/cache',
+] as $dir) {
+    if (!is_dir($dir)) {
+        mkdir($dir, 0755, true);
+    }
+}
+
+// Copy any pre-compiled views/cache
+foreach (['cache', 'views'] as $type) {
+    $src = __DIR__ . "/../storage/framework/$type";
+    $dst = "/tmp/storage/framework/$type";
+    if (is_dir($src)) {
+        shell_exec("cp -rn $src/* $dst/ 2>/dev/null");
+    }
+}
+
 if (file_exists($maintenance = __DIR__.'/../storage/framework/maintenance.php')) {
     require $maintenance;
 }
 
-// Register the Composer autoloader...
 require __DIR__.'/../vendor/autoload.php';
 
-// Bootstrap Laravel and handle the request...
-/** @var Application $app */
 $app = require_once __DIR__.'/../bootstrap/app.php';
+
+// Force Laravel to use /tmp for storage
+$app->useStoragePath('/tmp/storage');
 
 $app->handleRequest(Request::capture());

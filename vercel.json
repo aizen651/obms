@@ -8,6 +8,17 @@
   },
   "rewrites": [
     { "source": "/(.*)", "destination": "/api/lambda.php" }
-    ],
-    "buildCommand": "echo skip"
+  ],
+  "buildCommand": "npm run build",
+  "env": {
+    "APP_CONFIG_CACHE": "/tmp/storage/bootstrap/cache/config.php",
+    "APP_EVENTS_CACHE": "/tmp/storage/bootstrap/cache/events.php",
+    "APP_PACKAGES_CACHE": "/tmp/storage/bootstrap/cache/packages.php",
+    "APP_ROUTES_CACHE": "/tmp/storage/bootstrap/cache/routes.php",
+    "APP_SERVICES_CACHE": "/tmp/storage/bootstrap/cache/services.php",
+    "VIEW_COMPILED_PATH": "/tmp/storage/framework/views",
+    "CACHE_DRIVER": "array",
+    "LOG_CHANNEL": "stderr",
+    "SESSION_DRIVER": "cookie"
+  }
 }
