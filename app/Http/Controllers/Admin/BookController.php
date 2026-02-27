@@ -158,14 +158,27 @@ class BookController extends Controller
     }
 
     public function destroy(Book $book)
-    {
-        if ($book->book_image) {
+{
+    if ($book->book_image) {
+        // Handle both old format "books/filename.jpg" and new full URLs
+        if (str_starts_with($book->book_image, 'http')) {
+            // Extract path after /public/books/
             $filename = basename($book->book_image);
-            Storage::disk('supabase')->delete($filename);
+        } else {
+            // Old format stored as "books/filename.jpg"
+            $filename = $book->book_image; // use full path as stored
         }
-
-        $book->delete();
-
-        return response()->json(['success' => true]);
+        
+        try {
+            Storage::disk('supabase')->delete($filename);
+        } catch (\Exception $e) {
+            // Log but don't block deletion
+            \Log::warning('Could not delete image: ' . $e->getMessage());
+        }
     }
+
+    $book->delete();
+
+    return response()->json(['success' => true]);
+}
 }
