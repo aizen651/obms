@@ -292,7 +292,7 @@ export default function Profile() {
                             flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:7,
                             padding:'9px 18px',
                             borderRadius:10,
-                            fontSize:13, fontWeight:500,
+                            fontSize:13,
                             fontFamily:"'Plus Jakarta Sans',sans-serif",
                             cursor:'pointer', border:'none',
                             transition:'all 0.18s',
