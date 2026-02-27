@@ -1,26 +1,40 @@
 <?php
 
-ini_set('display_errors', '0');
+use Illuminate\Foundation\Application;
+use Illuminate\Http\Request;
 
-$rootDir = realpath(__DIR__ . '/../');
+define('LARAVEL_START', microtime(true));
 
-// Point storage to /tmp (writable on Vercel)
-putenv('APP_STORAGE=/tmp');
+// Create writable storage directories in /tmp
+foreach ([
+    '/tmp/storage/framework/views',
+    '/tmp/storage/framework/cache/data',
+    '/tmp/storage/framework/sessions',
+    '/tmp/storage/logs',
+    '/tmp/storage/app/public',
+] as $dir) {
+    if (!is_dir($dir)) {
+        mkdir($dir, 0755, true);
+    }
+}
 
-$_ENV['APP_STORAGE'] = '/tmp';
-$_SERVER['APP_STORAGE'] = '/tmp';
+// Copy cached config/routes/views if they exist
+foreach (['cache', 'views'] as $type) {
+    $src = __DIR__ . "/../storage/framework/$type";
+    $dst = "/tmp/storage/framework/$type";
+    if (is_dir($src)) {
+        shell_exec("cp -rn $src/* $dst/ 2>/dev/null");
+    }
+}
 
-require $rootDir . '/user/vendor/autoload.php';
+if (file_exists($maintenance = __DIR__.'/../storage/framework/maintenance.php')) {
+    require $maintenance;
+}
 
-$app = require_once $rootDir . '/user/bootstrap/app.php';
+require __DIR__.'/../vendor/autoload.php';
 
-// Override storage path
-$app->useStoragePath('/tmp');
+$app = require_once __DIR__.'/../bootstrap/app.php';
 
-$kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);
+$app->useStoragePath('/tmp/storage');
 
-$response = $kernel->handle(
-    $request = Illuminate\Http\Request::capture()
-)->send();
-
-$kernel->terminate($request, $response);
+$app->handleRequest(Request::capture());
