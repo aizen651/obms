@@ -4,6 +4,8 @@ import react from '@vitejs/plugin-react';
 import laravel from 'laravel-vite-plugin';
 import { defineConfig } from 'vite';
 
+const isProd = process.env.NODE_ENV === 'production';
+
 export default defineConfig({
     plugins: [
         laravel({
@@ -17,17 +19,16 @@ export default defineConfig({
             },
         }),
         tailwindcss(),
-        wayfinder({
-            formVariants: true,
-        }),
+        // Only load wayfinder in development
+        ...(!isProd ? [wayfinder({ formVariants: true })] : []),
     ],
     server: {
-      hmr: {
-        host: 'localhost',
-      },
-      watch: {
-        usePolling: true,
-      },
+        hmr: {
+            host: 'localhost',
+        },
+        watch: {
+            usePolling: true,
+        },
     },
     esbuild: {
         jsx: 'automatic',
