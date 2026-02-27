@@ -19,16 +19,15 @@ export default defineConfig({
         tailwindcss(),
         wayfinder({
             formVariants: true,
-            generateTypes: process.env.NODE_ENV !== 'production', // ← fix
         }),
     ],
     server: {
-        hmr: {
-            host: 'localhost',
-        },
-        watch: {
-            usePolling: true,
-        },
+      hmr: {
+        host: 'localhost',
+      },
+      watch: {
+        usePolling: true,
+      },
     },
     esbuild: {
         jsx: 'automatic',

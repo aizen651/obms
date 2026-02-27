@@ -20,7 +20,6 @@ exports.default = (0, vite_2.defineConfig)({
         (0, vite_1.default)(),
         (0, vite_plugin_wayfinder_1.wayfinder)({
             formVariants: true,
-            generateTypes: process.env.NODE_ENV !== 'production', // ← fix
         }),
     ],
     server: {
