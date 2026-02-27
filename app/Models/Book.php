@@ -55,13 +55,11 @@ class Book extends Model
         });
     }
 
-    // Book.php
-public function getImageUrlAttribute()
+   public function getImageUrlAttribute()
 {
     if (!$this->book_image) return null;
 
-    // Construct full public URL for Supabase
-    return env('SUPABASE_URL') . '/storage/v1/object/public/' . $this->book_image;
+    return env('SUPABASE_URL') . '/storage/v1/object/public/books/' . basename($this->book_image);
 }
 
     // Computed status that always reflects actual availability
