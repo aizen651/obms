@@ -10,8 +10,8 @@ const btn = 'min-w-[32px] h-8 px-2 rounded text-sm font-medium flex items-center
 
 const BookCover = ({ book, size = 'sm' }) => {
     const cls = size === 'lg' ? 'w-16 h-20 rounded shadow-sm flex-shrink-0' : 'w-10 h-14 rounded shadow-sm flex-shrink-0';
-    return book.image_url
-        ? <img src={book.image_url} alt={book.title} className={`${cls} object-cover`} />
+    return book.book_image
+        ? <img src={book.book_image} alt={book.title} className={`${cls} object-cover`} />
         : <div className={`${cls} bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white`}><BookOpen className={size === 'lg' ? 'w-6 h-6' : 'w-5 h-5'} /></div>;
 };
 
@@ -147,8 +147,8 @@ export default function Books({ books, categories, filters }) {
                     )}
                 </div>
 
-                {/* Table */}
-                <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+                {/* Desktop Table */}
+                <div className="hidden sm:block bg-white rounded-lg shadow-sm border overflow-hidden">
                     {books.data.length > 0 ? (
                         <div className="overflow-x-auto">
                             <table className="w-full">
@@ -166,17 +166,11 @@ export default function Books({ books, categories, filters }) {
                                 <tbody className="divide-y divide-gray-100">
                                     {books.data.map(book => (
                                         <tr key={book.id} className="hover:bg-blue-50/30 transition-colors">
-                                            <td className="px-4 py-3">
-                                                <div className="flex items-center gap-3">
-                                                    <BookCover book={book} />
-                                                    <div className="min-w-0">
-                                                        <p className="font-semibold text-sm text-gray-900 line-clamp-1">{book.title}</p>
-                                                        <p className="text-xs text-gray-500 line-clamp-1">{book.publisher}</p>
-                                                        {/* Author shown inline on mobile */}
-                                                        <p className="sm:hidden text-xs text-gray-600 mt-0.5">{book.author}</p>
-                                                        {/* Copies shown inline on mobile */}
-                                                        <div className="sm:hidden mt-1"><CopiesBadge book={book} /></div>
-                                                    </div>
+                                            <td className="px-4 py-3 flex items-center gap-3">
+                                                <BookCover book={book} />
+                                                <div className="min-w-0">
+                                                    <p className="font-semibold text-sm text-gray-900 line-clamp-1">{book.title}</p>
+                                                    <p className="text-xs text-gray-500 line-clamp-1">{book.publisher}</p>
                                                 </div>
                                             </td>
                                             <td className="px-4 py-3 hidden lg:table-cell">
@@ -192,7 +186,7 @@ export default function Books({ books, categories, filters }) {
                                             </td>
                                             <td className="px-4 py-3 hidden sm:table-cell"><CopiesBadge book={book} /></td>
                                             <td className="px-4 py-3"><StatusBadge book={book} /></td>
-                                            <td className="px-4 py-3">
+                                            <td className="px-4 py-3 text-center">
                                                 <div className="flex items-center justify-center gap-1">
                                                     <Link href={route('admin.books.show', book.id)} className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors" title="View"><Eye className="w-4 h-4" /></Link>
                                                     <button onClick={() => { setToDelete(book); setDeleteOpen(true); }} className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Delete"><Trash2 className="w-4 h-4" /></button>
@@ -211,12 +205,46 @@ export default function Books({ books, categories, filters }) {
                     )}
                 </div>
 
+                {/* Mobile Cards */}
+                <div className="sm:hidden grid gap-3">
+                    {books.data.map(book => (
+                        <div key={book.id} className="flex items-center gap-3 bg-white p-3 rounded-lg shadow-sm">
+                            <BookCover book={book} size="lg" />
+                            <div className="flex-1 min-w-0">
+                                <p className="font-semibold text-gray-900 line-clamp-1">{book.title}</p>
+                                <p className="text-sm text-gray-500 line-clamp-1">{book.author}</p>
+                                <p className="text-xs text-gray-400 mt-1"><CopiesBadge book={book} /> · <StatusBadge book={book} /></p>
+                            </div>
+                            <div className="flex flex-col gap-1">
+                                <Link href={route('admin.books.show', book.id)} className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors" title="View">
+                                    <Eye className="w-4 h-4" />
+                                </Link>
+                                <button onClick={() => { setToDelete(book); setDeleteOpen(true); }} className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Delete">
+                                    <Trash2 className="w-4 h-4" />
+                                </button>
+                            </div>
+                        </div>
+                    ))}
+                    {books.data.length === 0 && (
+                        <div className="p-12 text-center col-span-full">
+                            <BookOpen className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                            <p className="text-gray-500 font-medium">No books found</p>
+                        </div>
+                    )}
+                </div>
+
                 {books.data.length > 0 && books.last_page > 1 && <Pagination books={books} />}
             </div>
 
             <BookCreateModal isOpen={createOpen} onClose={() => setCreateOpen(false)} categories={categories} />
-            <DeleteConfirmationModal isOpen={deleteOpen} onClose={() => { setDeleteOpen(false); setToDelete(null); }} onConfirm={confirmDelete}
-                title="Delete Book" message={`Are you sure you want to delete "${toDelete?.title}"?`} isDeleting={deleting} />
+            <DeleteConfirmationModal
+                isOpen={deleteOpen}
+                onClose={() => { setDeleteOpen(false); setToDelete(null); }}
+                onConfirm={confirmDelete}
+                title="Delete Book"
+                message={`Are you sure you want to delete "${toDelete?.title}"?`}
+                isDeleting={deleting}
+            />
         </AdminAuthLayout>
     );
 }

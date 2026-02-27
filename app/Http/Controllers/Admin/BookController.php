@@ -29,9 +29,9 @@ class BookController extends Controller
             $query->where('category_id', $request->category);
         }
 
-         if ($request->filled('status')) {
-    $query->status($request->status);
-      }
+        if ($request->filled('status')) {
+            $query->status($request->status);
+        }
 
         $sortColumn = $request->get('sort', 'created_at');
         $sortDirection = $request->get('direction', 'desc');
@@ -52,8 +52,7 @@ class BookController extends Controller
         $book->load([
             'category',
             'transactions' => function($query) {
-                $query->with('borrower')
-                      ->orderBy('created_at', 'desc');
+                $query->with('borrower')->orderBy('created_at', 'desc');
             }
         ]);
 
@@ -101,14 +100,16 @@ class BookController extends Controller
         ]);
 
         if ($request->hasFile('book_image')) {
-    $path = $request->file('book_image')->store('books', 'supabase');
-    // Save full public URL in DB
-    $validated['book_image'] = env('SUPABASE_URL') . '/storage/v1/object/public/' . env('SUPABASE_BUCKET') . '/' . $path;
-}
+            $path = $request->file('book_image')->store('books', 'supabase');
+            $validated['book_image'] = env('SUPABASE_URL')
+                . '/storage/v1/object/public/' 
+                . env('SUPABASE_BUCKET') 
+                . '/' 
+                . $path;
+        }
 
         $validated['available_copies'] = $validated['total_copies'];
 
-        // Status will be auto-set by the model observer based on available_copies
         Book::create($validated);
 
         return redirect()->route('admin.books.index')->with('success', 'Book added successfully!');
@@ -135,25 +136,29 @@ class BookController extends Controller
         ]);
 
         if ($request->hasFile('book_image')) {
-    if ($book->book_image) {
-        // Delete old image from Supabase
-        $oldPath = str_replace(env('SUPABASE_URL') . '/storage/v1/object/public/' . env('SUPABASE_BUCKET') . '/', '', $book->book_image);
-        Storage::disk('supabase')->delete($oldPath);
-    }
+            if ($book->book_image) {
+                $oldPath = str_replace(
+                    env('SUPABASE_URL') . '/storage/v1/object/public/' . env('SUPABASE_BUCKET') . '/',
+                    '',
+                    $book->book_image
+                );
+                Storage::disk('supabase')->delete($oldPath);
+            }
 
-    $path = $request->file('book_image')->store('books', 'supabase');
-    // Save full public URL in DB
-    $validated['book_image'] = env('SUPABASE_URL') . '/storage/v1/object/public/' . env('SUPABASE_BUCKET') . '/' . $path;
-} else {
-    $validated['book_image'] = $book->book_image;
-}
+            $path = $request->file('book_image')->store('books', 'supabase');
+            $validated['book_image'] = env('SUPABASE_URL')
+                . '/storage/v1/object/public/' 
+                . env('SUPABASE_BUCKET') 
+                . '/' 
+                . $path;
+        } else {
+            $validated['book_image'] = $book->book_image;
+        }
 
-        // Don't override status if it's archived - admin choice
-        // For available/unavailable, the observer will handle it
+        // Only override status if book is not archived (observer handles available/unavailable)
         if ($book->status !== 'archived' || $validated['status'] === 'archived') {
             $book->update($validated);
         } else {
-            // If book is archived, keep it archived unless explicitly changed
             unset($validated['status']);
             $book->update($validated);
         }
@@ -170,7 +175,12 @@ class BookController extends Controller
         }
 
         if ($book->book_image) {
-            Storage::disk('supabase')->delete($book->book_image);
+            $oldPath = str_replace(
+                env('SUPABASE_URL') . '/storage/v1/object/public/' . env('SUPABASE_BUCKET') . '/',
+                '',
+                $book->book_image
+            );
+            Storage::disk('supabase')->delete($oldPath);
         }
 
         $book->delete();
