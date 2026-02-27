@@ -49,9 +49,9 @@ return [
         
     'supabase' => [
     'driver' => 's3',
-    'key' => env('SUPABASE_ANON_KEY'),
-    'secret' => env('SUPABASE_SERVICE_ROLE_KEY'),
-    'region' => 'ap-southeast-1',  // ← change to ap-southeast-1 for Philippines
+    'key' => env('SUPABASE_S3_ACCESS_KEY'),
+    'secret' => env('SUPABASE_S3_SECRET_KEY'),
+    'region' => env('SUPABASE_S3_REGION', 'ap-southeast-1'),
     'bucket' => 'books',
     'endpoint' => env('SUPABASE_URL') . '/storage/v1/s3',
     'use_path_style_endpoint' => true,
