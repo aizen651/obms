@@ -80,6 +80,17 @@ return [
     'throw' => true,
 ],
 
+'supabase_magazine' => [
+    'driver'                  => 's3',
+    'key'                     => env('SUPABASE_S3_ACCESS_KEY'),
+    'secret'                  => env('SUPABASE_S3_SECRET_KEY'),
+    'region'                  => env('SUPABASE_S3_REGION', 'ap-southeast-1'),
+    'bucket'                  => 'magazine',
+    'endpoint'                => env('SUPABASE_URL') . '/storage/v1/s3',
+    'use_path_style_endpoint' => true,
+    'throw'                   => true,
+],
+
         's3' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),

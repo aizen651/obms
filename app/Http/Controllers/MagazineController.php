@@ -64,11 +64,12 @@ class MagazineController extends Controller
         $this->adminOnly();
         $request->validate(['image' => 'required|image|max:5120']);
 
-        $path = $request->file('image')->store('magazine', 'supabase');
+        $file     = $request->file('image');
+        $filename = time() . '_' . $file->getClientOriginalName();
+        Storage::disk('supabase_magazine')->putFileAs('', $file, $filename);
 
-        // Return the full public URL — the model mutator will normalize it on save
         return response()->json([
-            'url' => Storage::url($path),
+            'url' => env('SUPABASE_URL') . '/storage/v1/object/public/magazine/' . $filename,
         ]);
     }
 
@@ -82,7 +83,6 @@ class MagazineController extends Controller
 
     private function format(MagazineIssue $i): array
     {
-        // Cache-bust timestamp so browsers reload changed images
         $ts = $i->updated_at->timestamp;
 
         return [
@@ -104,13 +104,15 @@ class MagazineController extends Controller
         ];
     }
 
-    // Add cache-busting to feature images on read (not stored in DB)
     private function formatFeatures(array $features, int $ts): array
     {
         return array_map(function ($f) use ($ts) {
             if (!empty($f['image'])) {
-                // image is stored as bare path, build full URL + cache bust
-                $f['image'] = Storage::url($f['image']) . '?v=' . $ts;
+                $base = strtok($f['image'], '?');
+                if (!str_starts_with($base, 'http')) {
+                    $base = env('SUPABASE_URL') . '/storage/v1/object/public/magazine/' . basename($base);
+                }
+                $f['image'] = $base . '?v=' . $ts;
             }
             return $f;
         }, $features);

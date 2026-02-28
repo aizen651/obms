@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Storage;
 
 class MagazineIssue extends Model
 {
@@ -21,15 +20,11 @@ class MagazineIssue extends Model
         'book_picks'   => 'array',
     ];
 
-    // Normalize hero_image before saving:
-    // Always store just the bare path (e.g. "magazine/file.jpg")
-    // Strip full URLs, /storage/ prefixes, and ?v= query strings
     public function setHeroImageAttribute(?string $value): void
     {
         $this->attributes['hero_image'] = $value ? self::normalizeImagePath($value) : null;
     }
 
-    // Normalize feature images before saving
     public function setFeaturesAttribute(?array $value): void
     {
         if ($value) {
@@ -43,25 +38,23 @@ class MagazineIssue extends Model
         $this->attributes['features'] = json_encode($value);
     }
 
-    // Always returns a clean public URL with cache-busting
     public function getHeroImageUrlAttribute(): ?string
     {
         if (!$this->hero_image) return null;
-        // Already a full external URL (e.g. Unsplash)
         if (str_starts_with($this->hero_image, 'http')) return $this->hero_image;
-        // Stored as bare path like "magazine/file.jpg"
-        return Storage::url($this->hero_image);
+        return env('SUPABASE_URL') . '/storage/v1/object/public/magazine/' . basename($this->hero_image);
     }
 
-    // Strip /storage/ prefix, full origin, and ?v= query string
-    // so we always store the bare relative path: "magazine/file.jpg"
     private static function normalizeImagePath(string $url): string
     {
-        // Remove query string
         $url = strtok($url, '?');
-        // Remove leading /storage/
+        // Already a Supabase URL — extract just the filename
+        if (preg_match('#/storage/v1/object/public/magazine/(.+)$#', $url, $m)) {
+            return $m[1];
+        }
+        // Remove /storage/ prefix
         $url = preg_replace('#^/storage/#', '', $url);
-        // Remove full origin like http://127.0.0.1:8000/storage/
+        // Remove full origin
         $url = preg_replace('#^https?://[^/]+/storage/#', '', $url);
         return $url;
     }
