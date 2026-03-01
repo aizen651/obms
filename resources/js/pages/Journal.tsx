@@ -5,7 +5,6 @@ import Navbar from '@/components/Navbar';
 
 const initials = (u) => `${u.firstname?.[0] ?? ''}${u.lastname?.[0] ?? ''}`.toUpperCase();
 const fmt = (d) => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-const avatarSrc = preview || user.avatar_url || null
 
 // ── Scroll Reveal Hook ────────────────────────────────────────────
 function useScrollReveal(options = {}) {
@@ -48,7 +47,7 @@ function Reveal({ children, delay = 0, direction = 'up', className = '' }) {
 // ── Avatar ────────────────────────────────────────────────────────
 function Avatar({ user, size = 'md' }) {
     const sz = size === 'sm' ? 'w-8 h-8 text-xs' : size === 'lg' ? 'w-12 h-12 text-base' : 'w-10 h-10 text-sm';
-    const src = avatarSrc(user.user_image);
+    const src = user?.avatar_url || null;
     return src
         ? <img src={src} alt="" className={`${sz} ring-2 ring-zinc-200 dark:ring-white/20 rounded-full shrink-0 object-cover`} />
         : <div className={`${sz} ring-2 ring-zinc-200 dark:ring-white/20 rounded-full shrink-0 flex items-center justify-center font-bold bg-zinc-200 text-zinc-600 dark:bg-gradient-to-br dark:from-white/20 dark:to-white/5 dark:text-white`}>{initials(user)}</div>;
@@ -144,10 +143,17 @@ function JournalCard({ entry, authUser, onEdit, onDelete, isDark }) {
 
 // ── Modal ─────────────────────────────────────────────────────────
 function JournalModal({ open, onClose, editing, books, isDark }) {
-    const { data, setData, post, put, processing, errors, reset } = useForm({ title: '', content: '', is_public: false, book_id: '' });
+    const { data, setData, post, put, processing, errors, reset } = useForm({
+        title: '', content: '', is_public: false, book_id: ''
+    });
 
     React.useEffect(() => {
-        if (open) setData({ title: editing?.title ?? '', content: editing?.content ?? '', is_public: editing?.is_public ?? false, book_id: editing?.book_id ?? '' });
+        if (open) setData({
+            title:     editing?.title     ?? '',
+            content:   editing?.content   ?? '',
+            is_public: editing?.is_public ?? false,
+            book_id:   editing?.book_id   ?? '',
+        });
     }, [open, editing?.id]);
 
     const submit = (e) => {
@@ -156,7 +162,6 @@ function JournalModal({ open, onClose, editing, books, isDark }) {
         editing ? put(route('journals.update', editing.id), opts) : post(route('journals.store'), opts);
     };
 
-    // Original dark mode inline styles
     const darkInputStyle = { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' };
 
     if (!open) return null;
@@ -194,7 +199,8 @@ function JournalModal({ open, onClose, editing, books, isDark }) {
                     </div>
                     <form onSubmit={submit} className="flex flex-col gap-4">
                         <div>
-                            <input value={data.title} onChange={e => setData('title', e.target.value)} placeholder="Title (optional)"
+                            <input value={data.title} onChange={e => setData('title', e.target.value)}
+                                placeholder="Title (optional)"
                                 className="w-full rounded-xl px-4 py-3 text-sm focus:outline-none transition-all
                                     bg-zinc-50 border border-zinc-200 text-zinc-800 placeholder-zinc-400 focus:ring-2 focus:ring-zinc-300
                                     dark:text-white dark:placeholder-white/25 dark:focus:ring-white/20"
@@ -316,29 +322,28 @@ export default function Journal({ journals, books = [], filter: currentFilter = 
     const user = auth?.user;
     const [isDark, setIsDark] = useState(false);
 
-    // Sync with current theme
     useEffect(() => {
-        const check = () => setIsDark(document.documentElement.classList.contains('dark'));
+    const check = () => setIsDark(document.documentElement.classList.contains('dark'));
         check();
         const observer = new MutationObserver(check);
         observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
         return () => observer.disconnect();
     }, []);
 
-    const entries = journals?.data ?? [];
+    const entries    = journals?.data         ?? [];
     const currentPage = journals?.current_page ?? 1;
-    const lastPage = journals?.last_page ?? 1;
-    const total = journals?.total ?? 0;
-    const perPage = journals?.per_page ?? 6;
+    const lastPage   = journals?.last_page     ?? 1;
+    const total      = journals?.total         ?? 0;
+    const perPage    = journals?.per_page      ?? 6;
 
     const [modalOpen, setModalOpen] = useState(false);
-    const [editing, setEditing] = useState(null);
-    const [deleting, setDeleting] = useState(null);
+    const [editing, setEditing]     = useState(null);
+    const [deleting, setDeleting]   = useState(null);
 
     const openCreate = () => { setEditing(null); setModalOpen(true); };
-    const openEdit = (e) => { setEditing(e); setModalOpen(true); };
+    const openEdit   = (e) => { setEditing(e);   setModalOpen(true); };
 
-    const filters = ['all', 'public', ...(user ? ['mine'] : [])];
+    const filters      = ['all', 'public', ...(user ? ['mine'] : [])];
     const filterLabels = { all: 'All', public: 'Public', mine: 'My Entries' };
 
     const goToPage = (page) => {
@@ -372,10 +377,8 @@ export default function Journal({ journals, books = [], filter: currentFilter = 
 
             {/* Background */}
             <div aria-hidden className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-                {/* Light mode */}
                 <div className="absolute -top-[20%] left-1/2 -translate-x-1/2 w-[900px] h-[600px] rounded-full dark:hidden"
                     style={{ background: 'radial-gradient(ellipse, rgba(0,0,0,0.02) 0%, transparent 70%)' }} />
-                {/* Dark mode — original */}
                 <div className="glow absolute -top-[20%] left-1/2 -translate-x-1/2 w-[900px] h-[600px] rounded-full hidden dark:block"
                     style={{ background: 'radial-gradient(ellipse, rgba(255,255,255,0.04) 0%, transparent 70%)' }} />
                 <div className="absolute bottom-0 right-0 w-[500px] h-[500px] rounded-full hidden dark:block"
@@ -403,8 +406,7 @@ export default function Journal({ journals, books = [], filter: currentFilter = 
                         {user && (
                             <button onClick={openCreate}
                                 className="btn-press flex items-center gap-2 px-5 py-2.5 rounded-2xl text-sm font-semibold shrink-0
-                                    bg-zinc-900 text-white hover:bg-zinc-700
-                                    dark:text-black"
+                                    bg-zinc-900 text-white hover:bg-zinc-700 dark:text-black"
                                 style={isDark ? { background: 'linear-gradient(135deg, #ffffff 0%, #e0e0e0 100%)', boxShadow: '0 0 30px rgba(255,255,255,0.1)' } : undefined}>
                                 <Plus size={15} /> New Entry
                             </button>
@@ -477,8 +479,7 @@ export default function Journal({ journals, books = [], filter: currentFilter = 
                                     {user && (
                                         <button onClick={openCreate}
                                             className="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium
-                                                bg-zinc-900 text-white hover:bg-zinc-700
-                                                dark:text-black"
+                                                bg-zinc-900 text-white hover:bg-zinc-700 dark:text-black"
                                             style={isDark ? { background: 'linear-gradient(135deg, #ffffff 0%, #d4d4d4 100%)' } : undefined}>
                                             <Plus size={14} /> Write your first entry
                                         </button>

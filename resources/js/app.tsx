@@ -4,10 +4,15 @@ import { createRoot } from 'react-dom/client';
 import { Toaster } from '@/components/ui/sonner';
 import { route } from 'ziggy-js';
 import '../css/app.css';
-import { configureEcho } from '@laravel/echo-react';
+import Echo from 'laravel-echo';
+import Pusher from 'pusher-js';
 
-configureEcho({
-    broadcaster: 'reverb',
+window.Pusher = Pusher;
+window.Echo = new Echo({
+    broadcaster: 'pusher',
+    key: import.meta.env.VITE_PUSHER_APP_KEY,
+    cluster: import.meta.env.VITE_PUSHER_APP_CLUSTER ?? 'ap1',
+    forceTLS: true,
 });
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
