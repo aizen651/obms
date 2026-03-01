@@ -123,10 +123,10 @@ export default function Dashboard({ stats, currentBorrows, recentHistory }) {
                             <div className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 overflow-hidden shadow-xl border
                                 bg-zinc-100 border-zinc-200 shadow-zinc-200
                                 dark:bg-gradient-to-br dark:from-white/15 dark:to-white/5 dark:border-white/10 dark:shadow-black/20">
-                                {user?.user_image
-                                    ? <img src={`/storage/${user.user_image}`} alt={user.firstname} className="w-full h-full object-cover" />
-                                    : <User className="w-7 h-7 text-zinc-400 dark:text-white/50" />
-                                }
+                               {user?.avatar_url
+    ? <img src={user.avatar_url} alt={user.firstname} className="w-full h-full object-cover" />
+    : <User className="w-7 h-7 text-zinc-400 dark:text-white/50" />
+}
                             </div>
                             <div>
                                 <p className="text-xs uppercase tracking-widest text-zinc-400 dark:text-white/40">{greeting()}</p>
