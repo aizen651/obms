@@ -116,10 +116,10 @@ export default function Navbar() {
         <div className={`${size === 'sm' ? 'w-7 h-7 rounded-lg' : 'w-9 h-9 rounded-xl'}
             bg-zinc-200 border border-zinc-300 dark:bg-white/10 dark:border-white/10
             flex items-center justify-center overflow-hidden flex-shrink-0`}>
-            {user?.user_image
-                ? <img src={`/storage/${user.user_image}`} alt={user.firstname} className="w-full h-full object-cover" />
-                : <User className={`${size === 'sm' ? 'w-3.5 h-3.5' : 'w-4 h-4'} text-zinc-500 dark:text-white/40`} />
-            }
+           {user?.avatar_url
+            ? <img src={user.avatar_url} alt={user.firstname} className="w-full h-full object-cover" />
+            : <User className={`${size === 'sm' ? 'w-3.5 h-3.5' : 'w-4 h-4'} text-zinc-500 dark:text-white/40`} />
+        }
         </div>
     );
 

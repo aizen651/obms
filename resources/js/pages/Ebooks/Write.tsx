@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Head, router, useForm } from '@inertiajs/react';
+import { Head, useForm } from '@inertiajs/react';
 import { ArrowLeft, PenLine, Save, Send, Image, AlertCircle, CheckCircle } from 'lucide-react';
 import { Link } from '@inertiajs/react';
 import Layout from '@/layouts/Layout';
@@ -27,7 +27,7 @@ const Field = ({ label, required, error, children }) => (
 export default function Write({ story }) {
     const isEdit = !!story;
 
-    const { data, setData, processing, errors } = useForm({
+    const { data, setData, post, processing, errors } = useForm({
         title:       story?.title    ?? '',
         genre:       story?.genre    ?? '',
         synopsis:    story?.synopsis ?? '',
@@ -36,7 +36,7 @@ export default function Write({ story }) {
         submit:      false,
     });
 
-    const [preview, setPreview] = useState(story?.cover_url ?? null);
+    const [preview, setPreview]     = useState(story?.cover_url ?? null);
     const [wordCount, setWordCount] = useState(() =>
         story?.content ? story.content.trim().split(/\s+/).length : 0
     );
@@ -53,15 +53,22 @@ export default function Write({ story }) {
         setPreview(URL.createObjectURL(file));
     };
 
-    const submit = (asDraft) => {
-        const url = isEdit ? `/ebooks/${story.id}` : '/ebooks';
-        const payload = { ...data, submit: !asDraft, ...(isEdit && { _method: 'PUT' }) };
+    const submit = (asDraft: boolean) => {
+        setData('submit', !asDraft);
 
-        router.post(url, payload, {
+        const url = isEdit ? `/ebooks/${story.id}` : '/ebooks';
+
+        const options = {
             forceFormData: true,
             onSuccess: () => toast.success(asDraft ? 'Draft saved!' : 'Submitted for review!'),
-            onError:   () => toast.error('Please fix the errors below.'),
-        });
+            onError: (errs) => {
+                const messages = Object.values(errs as Record<string, string>).join(', ');
+                toast.error(messages || 'Please fix the errors below.');
+            },
+            ...(isEdit && { _method: 'PUT' }),
+        };
+
+        post(url, options);
     };
 
     const readTime = Math.max(1, Math.ceil(wordCount / 200));

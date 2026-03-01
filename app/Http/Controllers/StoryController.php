@@ -29,8 +29,7 @@ class StoryController extends Controller
         }
 
         $stories = $query->paginate(12)->withQueryString()->through(fn($s) => $this->formatStory($s));
-
-        $genres = Story::approved()->distinct()->pluck('genre')->filter()->values();
+        $genres  = Story::approved()->distinct()->pluck('genre')->filter()->values();
 
         return Inertia::render('Ebooks/Index', [
             'stories' => $stories,
@@ -83,21 +82,24 @@ class StoryController extends Controller
             'submit'      => 'nullable|boolean',
         ]);
 
-        $coverPath = null;
+        $coverUrl = null;
         if ($request->hasFile('cover_image')) {
-            $coverPath = $request->file('cover_image')->store('story-covers', 'supabase');
+            $file     = $request->file('cover_image');
+            $filename = time() . '_' . $file->getClientOriginalName();
+            Storage::disk('supabase_story_covers')->putFileAs('', $file, $filename);
+            $coverUrl = env('SUPABASE_URL') . '/storage/v1/object/public/story-covers/' . $filename;
         }
 
-        $story = Story::create([
-            'user_id'   => $request->user()->id,
-            'title'     => $validated['title'],
-            'slug'      => Story::generateSlug($validated['title']),
-            'genre'     => $validated['genre'] ?? null,
-            'synopsis'  => $validated['synopsis'] ?? null,
-            'content'   => $validated['content'],
-            'cover_image' => $coverPath,
-            'status'    => $request->boolean('submit') ? 'pending' : 'draft',
-            'read_time' => Story::estimateReadTime($validated['content']),
+        Story::create([
+            'user_id'     => $request->user()->id,
+            'title'       => $validated['title'],
+            'slug'        => Story::generateSlug($validated['title']),
+            'genre'       => $validated['genre'] ?? null,
+            'synopsis'    => $validated['synopsis'] ?? null,
+            'content'     => $validated['content'],
+            'cover_image' => $coverUrl,
+            'status'      => $request->boolean('submit') ? 'pending' : 'draft',
+            'read_time'   => Story::estimateReadTime($validated['content']),
         ]);
 
         $msg = $request->boolean('submit')
@@ -134,8 +136,15 @@ class StoryController extends Controller
         ]);
 
         if ($request->hasFile('cover_image')) {
-            if ($story->cover_image) Storage::disk('supabase')->delete($story->cover_image);
-            $story->cover_image = $request->file('cover_image')->store('story-covers', 'supabase');
+            if ($story->cover_image) {
+                try {
+                    Storage::disk('supabase_story_covers')->delete(basename($story->cover_image));
+                } catch (\Exception $e) {}
+            }
+            $file     = $request->file('cover_image');
+            $filename = time() . '_' . $file->getClientOriginalName();
+            Storage::disk('supabase_story_covers')->putFileAs('', $file, $filename);
+            $story->cover_image = env('SUPABASE_URL') . '/storage/v1/object/public/story-covers/' . $filename;
         }
 
         $story->title     = $validated['title'];
@@ -159,7 +168,11 @@ class StoryController extends Controller
     public function destroy(Story $story)
     {
         abort_if($story->user_id !== auth()->id(), 403);
-        if ($story->cover_image) Storage::disk('supabase')->delete($story->cover_image);
+        if ($story->cover_image) {
+            try {
+                Storage::disk('supabase_story_covers')->delete(basename($story->cover_image));
+            } catch (\Exception $e) {}
+        }
         $story->delete();
         return back()->with('success', 'Story deleted.');
     }

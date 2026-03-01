@@ -32,13 +32,15 @@ class Story extends Model
     // ── Accessors ─────────────────────────────────────────────────────────────
     public function getCoverUrlAttribute(): ?string
     {
-        return $this->cover_image ? asset('storage/' . $this->cover_image) : null;
+        if (!$this->cover_image) return null;
+        if (str_starts_with($this->cover_image, 'http')) return $this->cover_image;
+        return env('SUPABASE_URL') . '/storage/v1/object/public/story-covers/' . basename($this->cover_image);
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
     public static function generateSlug(string $title): string
     {
-        $slug = Str::slug($title);
+        $slug  = Str::slug($title);
         $count = static::where('slug', 'like', "{$slug}%")->count();
         return $count ? "{$slug}-{$count}" : $slug;
     }
@@ -46,6 +48,6 @@ class Story extends Model
     public static function estimateReadTime(string $content): int
     {
         $words = str_word_count(strip_tags($content));
-        return max(1, (int) ceil($words / 200)); // ~200 wpm
+        return max(1, (int) ceil($words / 200));
     }
 }
