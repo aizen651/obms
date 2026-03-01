@@ -18,10 +18,10 @@ class ProfileController extends Controller
         return Inertia::render('User/Profile', [
             'user' => $user,
             'stats' => [
-                'total_borrowed' => $user->transactions()->count(),
+                'total_borrowed'      => $user->transactions()->count(),
                 'currently_borrowing' => $user->borrowedBooks()->count(),
-                'total_returned' => $user->borrowHistory()->count(),
-                'overdue' => $user->overdueBooks()->count(),
+                'total_returned'      => $user->borrowHistory()->count(),
+                'overdue'             => $user->overdueBooks()->count(),
             ],
         ]);
     }
@@ -39,13 +39,18 @@ class ProfileController extends Controller
             'user_image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
         ]);
 
-        // Handle image upload
         if ($request->hasFile('user_image')) {
             // Delete old image
             if ($user->user_image) {
-                Storage::disk('supabase')->delete($user->user_image);
+                try {
+                    Storage::disk('supabase_profiles')->delete(basename($user->user_image));
+                } catch (\Exception $e) {}
             }
-            $user->user_image = $request->file('user_image')->store('user_images', 'supabase');
+
+            $file     = $request->file('user_image');
+            $filename = time() . '_' . $file->getClientOriginalName();
+            Storage::disk('supabase_profiles')->putFileAs('', $file, $filename);
+            $user->user_image = env('SUPABASE_URL') . '/storage/v1/object/public/profile-images/' . $filename;
         }
 
         $user->firstname = $request->firstname;
@@ -82,7 +87,9 @@ class ProfileController extends Controller
         $user = Auth::user();
 
         if ($user->user_image) {
-            Storage::disk('supabase')->delete($user->user_image);
+            try {
+                Storage::disk('supabase_profiles')->delete(basename($user->user_image));
+            } catch (\Exception $e) {}
             $user->user_image = null;
             $user->save();
         }

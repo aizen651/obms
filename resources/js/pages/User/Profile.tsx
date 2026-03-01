@@ -119,7 +119,7 @@ export default function Profile({ user, stats }) {
         setPreview(null)
     }
 
-    const avatarSrc = preview || (user.user_image ? `/storage/${user.user_image}` : null)
+  const avatarSrc = preview || user.avatar_url || null
 
     const tabs = [
         { key: 'info',     label: 'Personal Info' },
