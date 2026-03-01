@@ -5,7 +5,7 @@ import Navbar from '@/components/Navbar';
 
 const initials = (u) => `${u.firstname?.[0] ?? ''}${u.lastname?.[0] ?? ''}`.toUpperCase();
 const fmt = (d) => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-const avatarSrc = (user_image) => user_image ? `/storage/${user_image}` : null;
+const avatarSrc = preview || user.avatar_url || null
 
 // ── Scroll Reveal Hook ────────────────────────────────────────────
 function useScrollReveal(options = {}) {
