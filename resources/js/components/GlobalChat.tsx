@@ -1,7 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react"
 import { router, usePage } from "@inertiajs/react"
-import Echo from "laravel-echo"
-import Pusher from "pusher-js"
 import { MessageCircle, Send, Loader2, Wifi, WifiOff, ChevronDown, Trash2 } from "lucide-react"
 
 interface Message {
@@ -20,6 +18,7 @@ interface AuthUser {
     firstname: string
     lastname: string
     user_image: string | null
+    avatar_url: string | null
     is_online: boolean
     last_seen_at: string | null
 }
@@ -49,22 +48,9 @@ const timeStr = (iso: string) =>
 const getCsrf = () =>
     decodeURIComponent(document.cookie.match(/XSRF-TOKEN=([^;]+)/)?.[1] ?? "")
 
-let echoInst: Echo | null = null
+// Use the global Echo instance initialized in app.tsx (Pusher)
 function getEcho() {
-    if (!echoInst) {
-        // @ts-ignore
-        window.Pusher = Pusher
-        echoInst = new Echo({
-            broadcaster:       "reverb",
-            key:               import.meta.env.VITE_REVERB_APP_KEY,
-            wsHost:            import.meta.env.VITE_REVERB_HOST,
-            wsPort:            Number(import.meta.env.VITE_REVERB_PORT ?? 8081),
-            wssPort:           Number(import.meta.env.VITE_REVERB_PORT ?? 8081),
-            forceTLS:          (import.meta.env.VITE_REVERB_SCHEME ?? "http") === "https",
-            enabledTransports: ["ws", "wss"],
-        })
-    }
-    return echoInst
+    return (window as any).Echo
 }
 
 type Pos = "solo" | "top" | "mid" | "end"
@@ -100,7 +86,6 @@ function Avatar({ name, avatar, size, fs, showOnline, isOnline }: {
                     width: size * 0.32, height: size * 0.32,
                     borderRadius: "50%",
                     background: isOnline ? "#4ade80" : "#52525b",
-                    // Use a CSS variable for the border so it adapts to light/dark
                     border: "2px solid var(--chat-online-border, #09090b)",
                 }} />
             )}
@@ -281,13 +266,17 @@ export default function GlobalChat() {
     }, [user?.id])
 
     useEffect(() => {
-        const e = getEcho()
-        const p = (e.connector as any).pusher
-        p.connection.bind("connected",    () => setWsOnline(true))
-        p.connection.bind("disconnected", () => setWsOnline(false))
-        p.connection.bind("error",        () => setWsOnline(false))
+        const echo = getEcho()
+        if (!echo) return
 
-        e.channel("global-chat")
+        const pusher = echo.connector.pusher
+        pusher.connection.bind("connected",    () => setWsOnline(true))
+        pusher.connection.bind("disconnected", () => setWsOnline(false))
+        pusher.connection.bind("error",        () => setWsOnline(false))
+
+        if (pusher.connection.state === "connected") setWsOnline(true)
+
+        echo.channel("global-chat")
             .listen(".message.sent", (data: Message) => {
                 const msg = { ...data, id: String(data.id), isOwn: data.userId === myId }
                 setMsgs(prev => prev.some(m => m.id === msg.id) ? prev : [...prev, msg])
@@ -298,7 +287,7 @@ export default function GlobalChat() {
                 setMsgs(prev => prev.map(m => m.id === String(id) ? { ...m, deleted: true } : m))
             })
 
-        return () => { e.leaveChannel("global-chat") }
+        return () => { echo.leaveChannel("global-chat") }
     }, [myId])
 
     useEffect(() => {
@@ -338,7 +327,8 @@ export default function GlobalChat() {
         if (e.key === "Escape") setOpen(false)
     }
 
-    const avatarUrl = user?.user_image ? `/storage/${user.user_image}` : null
+    // Use avatar_url accessor from Laravel model (same as Dashboard)
+    const avatarUrl = user?.avatar_url ?? null
 
     return (
         <>
@@ -349,14 +339,10 @@ export default function GlobalChat() {
                 .chat-rise { animation: chat-rise 0.28s cubic-bezier(0.22,1,0.36,1) both }
                 .chat-pop  { animation: chat-pop 0.18s ease both }
                 .chat-fade { animation: chat-fade 0.18s ease both }
-                /* Dark scrollbar */
                 .chat-scroll::-webkit-scrollbar       { width: 3px }
                 .chat-scroll::-webkit-scrollbar-track { background: transparent }
                 .chat-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px }
-                /* Light scrollbar */
-                .light .chat-scroll::-webkit-scrollbar-thumb,
                 :root:not(.dark) .chat-scroll::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.10) }
-                /* Online dot border adapts to mode */
                 :root:not(.dark) { --chat-online-border: #f4f4f5 }
                 .dark            { --chat-online-border: #09090b }
             `}</style>
