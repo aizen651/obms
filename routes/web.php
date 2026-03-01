@@ -60,14 +60,15 @@ Route::middleware('auth')->group(function () {
     Route::put('/journal/{journal}',  [JournalController::class, 'update'])->name('journals.update');
     Route::delete('/journal/{journal}', [JournalController::class, 'destroy'])->name('journals.destroy');
     // E-books
-    Route::get('/ebooks',              [StoryController::class, 'index'])->name('ebooks.index');
-    Route::get('/ebooks/create',       [StoryController::class, 'create'])->name('ebooks.create');
-    Route::post('/ebooks',             [StoryController::class, 'store'])->name('ebooks.store');
-    Route::get('/ebooks/my-stories',   [StoryController::class, 'myStories'])->name('ebooks.my-stories');
-    Route::get('/ebooks/{story:slug}', [StoryController::class, 'show'])->name('ebooks.show');
-    Route::get('/ebooks/{story}/edit', [StoryController::class, 'edit'])->name('ebooks.edit');
-    Route::put('/ebooks/{story}',      [StoryController::class, 'update'])->name('ebooks.update');
-    Route::delete('/ebooks/{story}',   [StoryController::class, 'destroy'])->name('ebooks.destroy');
+    // E-books
+Route::get('/ebooks',            [StoryController::class, 'index'])->name('ebooks.index');
+Route::get('/ebooks/create',     [StoryController::class, 'create'])->name('ebooks.create');
+Route::get('/ebooks/my-stories', [StoryController::class, 'myStories'])->name('ebooks.my-stories');  // ← MOVE UP before {slug}
+Route::post('/ebooks',           [StoryController::class, 'store'])->name('ebooks.store');
+Route::get('/ebooks/{story:slug}', [StoryController::class, 'show'])->name('ebooks.show');
+Route::get('/ebooks/{story}/edit', [StoryController::class, 'edit'])->name('ebooks.edit');
+Route::put('/ebooks/{story}',      [StoryController::class, 'update'])->name('ebooks.update');
+Route::delete('/ebooks/{story}',   [StoryController::class, 'destroy'])->name('ebooks.destroy');
 
     // Logout
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
