@@ -9,6 +9,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -32,9 +33,13 @@ class RegisterController extends Controller
             'user_image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
         ]);
 
+        // Use same disk + same URL format as ProfileController
         $imagePath = null;
         if ($request->hasFile('user_image')) {
-            $imagePath = $request->file('user_image')->store('user_images', 'supabase');
+            $file      = $request->file('user_image');
+            $filename  = time() . '_' . $file->getClientOriginalName();
+            Storage::disk('supabase_profiles')->putFileAs('', $file, $filename);
+            $imagePath = env('SUPABASE_URL') . '/storage/v1/object/public/profile-images/' . $filename;
         }
 
         $user = User::create([
