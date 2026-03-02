@@ -9,8 +9,6 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\Rules;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -24,14 +22,14 @@ class RegisterController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $request->validate([
-            'firstname'             => 'required|string|max:255',
-            'lastname'              => 'required|string|max:255',
-            'email'                 => 'required|string|email|max:255|unique:users',
-            'contact'               => 'nullable|string|max:20',
-            'gender'                => 'required|in:male,female,other',
-            'role'                  => 'required|in:student,teacher',
-            'password'              => ['required', 'confirmed', Rules\Password::defaults()],
-            'user_image'            => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
+            'firstname'  => 'required|string|max:255',
+            'lastname'   => 'required|string|max:255',
+            'email'      => 'required|string|email|max:255|unique:users',
+            'contact'    => 'nullable|string|max:20',
+            'gender'     => 'required|in:male,female,other',
+            'role'       => 'required|in:student,teacher',
+            'password'   => 'required|string|min:8|confirmed',
+            'user_image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
         ]);
 
         $imagePath = null;
@@ -54,7 +52,6 @@ class RegisterController extends Controller
 
         Auth::login($user);
 
-        // Redirect based on role
         return match($user->role) {
             'student', 'teacher' => redirect()->route('books'),
             default              => redirect()->route('home'),

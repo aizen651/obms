@@ -5,7 +5,12 @@ import {
     DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuRadioGroup,
     DropdownMenuRadioItem, DropdownMenuItem
 } from "@/components/ui/dropdown-menu";
-import { Search, Filter, BookMarked, BookOpen, ChevronUp, ChevronDown, ChevronsUpDown, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
+import {
+    Search, Filter, BookMarked, BookOpen,
+    ChevronUp, ChevronDown, ChevronsUpDown,
+    Eye, ChevronLeft, ChevronRight, X,
+    MoveHorizontal, LogIn
+} from 'lucide-react';
 import { Link } from '@inertiajs/react';
 import { toast } from 'sonner';
 import Layout from '@/layouts/Layout';
@@ -13,6 +18,7 @@ import BorrowModal from '@/components/BorrowModal';
 
 const btn = 'min-w-[32px] h-8 px-2 rounded text-sm font-medium flex items-center justify-center transition-colors select-none';
 
+/* ── Status badge ─────────────────────────────────────────────────────────── */
 const StatusBadge = ({ book }) => {
     const s = book.display_status || book.status;
     const styles = {
@@ -27,6 +33,38 @@ const StatusBadge = ({ book }) => {
     );
 };
 
+/* ── Image preview modal ──────────────────────────────────────────────────── */
+function ImageModal({ src, alt, onClose }) {
+    useEffect(() => {
+        const onKey = (e) => { if (e.key === 'Escape') onClose() }
+        document.addEventListener('keydown', onKey)
+        return () => document.removeEventListener('keydown', onKey)
+    }, [onClose])
+
+    return (
+        <div
+            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+            onClick={onClose}
+        >
+            <div className="relative max-w-sm w-full" onClick={e => e.stopPropagation()}>
+                <button
+                    onClick={onClose}
+                    className="absolute -top-3 -right-3 z-10 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 flex items-center justify-center transition-colors"
+                >
+                    <X size={14} className="text-white" />
+                </button>
+                <img
+                    src={src}
+                    alt={alt}
+                    className="w-full max-h-[70vh] object-contain rounded-2xl shadow-2xl ring-1 ring-white/10"
+                />
+                <p className="text-center text-xs text-white/50 mt-3">{alt}</p>
+            </div>
+        </div>
+    )
+}
+
+/* ── Pagination ───────────────────────────────────────────────────────────── */
 function Pagination({ books, search, categoryFilter, statusFilter, sort }) {
     const [maxVisible, setMaxVisible] = useState(5);
     const calc = useCallback(() => {
@@ -113,6 +151,7 @@ const COLS = [
     { key: "display_status",   label: "Status" },
 ];
 
+/* ── Main component ───────────────────────────────────────────────────────── */
 export default function Books({ books, categories, filters, borrowedBookIds = [] }) {
     const { auth } = usePage().props;
 
@@ -121,8 +160,29 @@ export default function Books({ books, categories, filters, borrowedBookIds = []
     const [statusFilter,   setStatusFilter]   = useState(filters?.status   || '');
     const [sort,           setSort]           = useState({ col: filters?.sort || 'title', dir: filters?.direction || 'asc' });
     const [borrowModal,    setBorrowModal]    = useState({ open: false, book: null });
+    const [imageModal,     setImageModal]     = useState({ open: false, src: '', alt: '' });
 
     const handleBorrowClick = (book) => {
+        if (!auth?.user) {
+            toast.custom(() => (
+                <div className="flex items-start gap-3 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 rounded-2xl shadow-xl px-4 py-3.5 min-w-[300px]">
+                    <div className="w-8 h-8 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <LogIn size={14} className="text-amber-500" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-100">Login required</p>
+                        <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-0.5">You need to log in before you can borrow a book.</p>
+                        <a
+                            href="/login"
+                            className="inline-flex items-center gap-1.5 mt-2 text-xs font-semibold text-amber-600 dark:text-amber-400 hover:underline"
+                        >
+                            <LogIn size={11} /> Go to Login
+                        </a>
+                    </div>
+                </div>
+            ), { duration: 5000 })
+            return
+        }
         if (borrowedBookIds.includes(book.id)) {
             toast.error('You already have an active borrow for this book.', { description: book.title });
             return;
@@ -157,6 +217,15 @@ export default function Books({ books, categories, filters, borrowedBookIds = []
         <Layout>
             <Head title="Books" />
 
+            {/* Image preview modal */}
+            {imageModal.open && (
+                <ImageModal
+                    src={imageModal.src}
+                    alt={imageModal.alt}
+                    onClose={() => setImageModal({ open: false, src: '', alt: '' })}
+                />
+            )}
+
             {/* Background blobs */}
             <div className="fixed inset-0 pointer-events-none overflow-hidden -z-0">
                 <div className="absolute top-10 left-1/3 w-[500px] h-[300px] bg-blue-100/60 rounded-full blur-[140px] dark:bg-slate-600/10" />
@@ -169,15 +238,39 @@ export default function Books({ books, categories, filters, borrowedBookIds = []
                     All Books
                 </h2>
                 <p className="text-sm text-zinc-400 mt-1 dark:text-white/40">{books.total} total books</p>
+
+                {/* Login notice for guests */}
+                {!auth?.user && (
+                    <div className="mt-4 flex items-center gap-3 px-4 py-3 rounded-xl border
+                        bg-amber-50 border-amber-200
+                        dark:bg-amber-500/10 dark:border-amber-500/20">
+                        <div className="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-500/30 flex items-center justify-center flex-shrink-0">
+                            <LogIn size={14} className="text-amber-500" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-amber-700 dark:text-amber-400">
+                                Login required to borrow books
+                            </p>
+                            <p className="text-xs text-amber-600/70 dark:text-amber-400/60 mt-0.5">
+                                You can browse the collection, but you'll need an account to borrow.
+                            </p>
+                        </div>
+                        <Link
+                            href="/login"
+                            className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all
+                                bg-amber-100 hover:bg-amber-200 text-amber-700 border border-amber-200
+                                dark:bg-amber-500/20 dark:hover:bg-amber-500/30 dark:text-amber-400 dark:border-amber-500/30"
+                        >
+                            <LogIn size={12} /> Log in
+                        </Link>
+                    </div>
+                )}
             </div>
 
             {/* Main card */}
             <div className="relative overflow-hidden rounded-2xl border border-zinc-200 shadow-sm bg-white dark:bg-transparent dark:border-white/10 dark:shadow-2xl dark:shadow-black/30">
 
-                {/* Top shimmer line */}
                 <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-zinc-200 to-transparent dark:via-white/30" />
-
-                {/* Dark mode inner bg overlay */}
                 <div className="absolute inset-0 bg-gradient-to-b from-white/8 via-white/5 to-white/3 pointer-events-none hidden dark:block" />
 
                 {/* Search / Filter bar */}
@@ -225,6 +318,12 @@ export default function Books({ books, categories, filters, borrowedBookIds = []
                     </DropdownMenu>
                 </div>
 
+                {/* Swipe indicator */}
+                <div className="flex items-center justify-center gap-1.5 py-2 bg-zinc-50/80 border-b border-zinc-100 dark:bg-black/10 dark:border-white/5 sm:hidden">
+                    <MoveHorizontal size={11} className="text-zinc-300 dark:text-white/20" />
+                    <span className="text-[10px] text-zinc-300 dark:text-white/20">Swipe to see more</span>
+                </div>
+
                 {/* Table */}
                 <div className="relative overflow-x-auto">
                     <table className="w-full text-xs">
@@ -248,19 +347,27 @@ export default function Books({ books, categories, filters, borrowedBookIds = []
                                 <tr
                                     key={book.id}
                                     className={`border-b border-zinc-100 transition-all hover:bg-zinc-50 dark:border-white/5 dark:hover:bg-white/8 ${
-                                        i % 2 === 0
-                                            ? 'bg-white dark:bg-transparent'
-                                            : 'bg-zinc-50/50 dark:bg-white/3'
+                                        i % 2 === 0 ? 'bg-white dark:bg-transparent' : 'bg-zinc-50/50 dark:bg-white/3'
                                     }`}
                                 >
-                                    {/* Cover */}
+                                    {/* Clickable cover image */}
                                     <td className="px-3 py-3">
-                                        {book.image_url
-                                            ? <img src={book.image_url} alt={book.title} className="w-10 h-14 object-cover rounded-lg ring-1 ring-zinc-200 dark:ring-white/10" />
-                                            : <div className="w-10 h-14 rounded-lg bg-zinc-100 border border-zinc-200 flex items-center justify-center text-zinc-300 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-600">
+                                        {book.image_url ? (
+                                            <button
+              onClick={() => setImageModal({ open: true, src: book.image_url, alt: book.title })}
+                                                className="relative group block w-10 h-14 rounded-lg overflow-hidden ring-1 ring-zinc-200 dark:ring-white/10 hover:ring-2 hover:ring-zinc-400 dark:hover:ring-white/30 transition-all"
+                                                title="Click to preview"
+                                            >
+                                                <img src={book.image_url} alt={book.title} className="w-full h-full object-cover" />
+                                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all flex items-center justify-center">
+                                                    <Eye size={12} className="text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                                                </div>
+                                            </button>
+                                        ) : (
+                                            <div className="w-10 h-14 rounded-lg bg-zinc-100 border border-zinc-200 flex items-center justify-center text-zinc-300 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-600">
                                                 <BookOpen className="w-5 h-5" />
-                                              </div>
-                                        }
+                                            </div>
+                                        )}
                                     </td>
 
                                     <td className="px-3 py-3 text-zinc-800 font-medium max-w-[180px] truncate dark:text-white">{book.title}</td>
@@ -294,9 +401,9 @@ export default function Books({ books, categories, filters, borrowedBookIds = []
                                                 <span className="text-[10px] font-semibold">View</span>
                                             </Link>
 
-                                            {/* Borrow */}
-                                            {auth?.user && (
-                                                book.available_copies > 0 ? (
+                                            {/* Borrow / Login / Unavailable */}
+                                            {book.available_copies > 0 ? (
+                                                auth?.user ? (
                                                     <button
                                                         onClick={() => handleBorrowClick(book)}
                                                         className="group relative flex items-center gap-1.5 h-7 pl-2 pr-3 rounded-full bg-emerald-50 hover:bg-emerald-600 text-emerald-700 hover:text-white border border-emerald-200 hover:border-transparent transition-all duration-200 hover:shadow-md hover:shadow-emerald-100 active:scale-95 overflow-hidden dark:bg-emerald-500/20 dark:hover:bg-emerald-500 dark:text-emerald-300 dark:hover:text-white dark:border-emerald-500/30 dark:hover:border-transparent dark:hover:shadow-emerald-500/20"
@@ -309,11 +416,19 @@ export default function Books({ books, categories, filters, borrowedBookIds = []
                                                         <span className="text-[10px] font-semibold">Borrow</span>
                                                     </button>
                                                 ) : (
-                                                    <span className="flex items-center gap-1.5 h-7 pl-2 pr-3 rounded-full bg-zinc-50 text-zinc-300 border border-zinc-100 cursor-not-allowed dark:bg-white/4 dark:text-white/20 dark:border-white/6">
-                                                        <BookMarked size={11} className="flex-shrink-0" />
-                                                        <span className="text-[10px] font-semibold">Unavailable</span>
-                                                    </span>
+                                                    <button
+                                                        onClick={() => handleBorrowClick(book)}
+                                                        className="flex items-center gap-1.5 h-7 pl-2 pr-3 rounded-full bg-amber-50 hover:bg-amber-100 text-amber-600 border border-amber-200 hover:border-amber-300 transition-all duration-200 active:scale-95 dark:bg-amber-500/15 dark:hover:bg-amber-500/25 dark:text-amber-400 dark:border-amber-500/25"
+                                                    >
+                                                        <LogIn size={11} className="flex-shrink-0" />
+                                                        <span className="text-[10px] font-semibold">Login</span>
+                                                    </button>
                                                 )
+                                            ) : (
+                                                <span className="flex items-center gap-1.5 h-7 pl-2 pr-3 rounded-full bg-zinc-50 text-zinc-300 border border-zinc-100 cursor-not-allowed dark:bg-white/4 dark:text-white/20 dark:border-white/6">
+                                                    <BookMarked size={11} className="flex-shrink-0" />
+                                                    <span className="text-[10px] font-semibold">Unavailable</span>
+                                                </span>
                                             )}
                                         </div>
                                     </td>
