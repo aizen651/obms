@@ -1,6 +1,6 @@
 import { Head, Link, useForm } from '@inertiajs/react'
-import { useState } from 'react'
-import { User, Mail, Phone, Lock, Eye, EyeOff, BookOpen, GraduationCap, Users } from 'lucide-react'
+import { useState, useRef } from 'react'
+import { User, Mail, Phone, Lock, Eye, EyeOff, BookOpen, GraduationCap, Users, ImagePlus, X } from 'lucide-react'
 import Layout from '@/layouts/Layout'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -56,29 +56,45 @@ const GlassInput = ({ icon: Icon, showToggle, onToggle, shown, error, ...props }
 )
 
 export default function Register() {
-    const [showPw, setShowPw] = useState(false)
+    const [showPw,     setShowPw]     = useState(false)
     const [showConfPw, setShowConfPw] = useState(false)
+    const [preview,    setPreview]    = useState<string | null>(null)
+    const fileRef = useRef<HTMLInputElement>(null)
 
     const { data, setData, post, processing, errors } = useForm({
         firstname:             '',
         lastname:              '',
         email:                 '',
-        contact:               null,
+        contact:               '',
         gender:                '',
         role:                  '',
         password:              '',
         password_confirmation: '',
-        user_image:            null,
+        user_image:            null as File | null,
     })
 
-    const submit = (e) => {
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+        setData('user_image', file)
+        // Show local preview immediately
+        const reader = new FileReader()
+        reader.onload = (ev) => setPreview(ev.target?.result as string)
+        reader.readAsDataURL(file)
+    }
+
+    const removeImage = () => {
+        setData('user_image', null)
+        setPreview(null)
+        if (fileRef.current) fileRef.current.value = ''
+    }
+
+    const submit = (e: React.FormEvent) => {
         e.preventDefault()
         post(route('register'), {
             forceFormData: true,
-            onSuccess: () => {
-                toast.success('You are now successfully registered.')
-            },
-            onError: () => toast.error('Registration failed.'),
+            onSuccess: () => toast.success('You are now successfully registered.'),
+            onError:   () => toast.error('Registration failed. Please check the form.'),
         })
     }
 
@@ -94,10 +110,8 @@ export default function Register() {
             <Layout>
                 {/* Ambient blobs */}
                 <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-                    {/* Light mode blobs */}
                     <div className="absolute top-20 left-1/4 w-96 h-96 bg-blue-100/40 rounded-full blur-[140px] dark:hidden" />
                     <div className="absolute bottom-20 right-1/4 w-80 h-80 bg-violet-100/30 rounded-full blur-[120px] dark:hidden" />
-                    {/* Dark mode blobs */}
                     <div className="absolute top-20 left-1/4 w-96 h-96 bg-slate-500/8 rounded-full blur-[140px] hidden dark:block" />
                     <div className="absolute bottom-20 right-1/4 w-80 h-80 bg-slate-400/8 rounded-full blur-[120px] hidden dark:block" />
                 </div>
@@ -132,14 +146,11 @@ export default function Register() {
                             bg-white border-zinc-200
                             dark:bg-transparent dark:border-white/10 dark:shadow-2xl dark:shadow-black/30">
 
-                            {/* Top shimmer */}
                             <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-zinc-200 to-transparent dark:via-white/30" />
-
-                            {/* Dark inner overlay */}
                             <div className="absolute inset-0 bg-gradient-to-b from-white/8 via-white/5 to-white/3 pointer-events-none hidden dark:block" />
 
                             <CardContent className="relative p-6 sm:p-8">
-                                <form onSubmit={submit} className="space-y-6" encType="multipart/form-data">
+                                <form onSubmit={submit} className="space-y-6">
 
                                     {/* Role Selector */}
                                     <div className="space-y-2">
@@ -192,7 +203,6 @@ export default function Register() {
                                         {errors.role && <p className="text-xs text-red-500 dark:text-red-400">{errors.role}</p>}
                                     </div>
 
-                                    {/* Divider */}
                                     <Divider label="Personal Info" />
 
                                     {/* Name */}
@@ -224,9 +234,7 @@ export default function Register() {
                                                     dark:focus:ring-white/25 dark:data-[placeholder]:text-white/25">
                                                     <SelectValue placeholder="Select gender" />
                                                 </SelectTrigger>
-                                                <SelectContent className="
-                                                    bg-white border-zinc-200 text-zinc-800
-                                                    dark:bg-slate-800 dark:border-white/10 dark:text-white">
+                                                <SelectContent className="bg-white border-zinc-200 text-zinc-800 dark:bg-slate-800 dark:border-white/10 dark:text-white">
                                                     <SelectItem value="male"   className="focus:bg-zinc-100 dark:focus:bg-white/10 dark:focus:text-white">Male</SelectItem>
                                                     <SelectItem value="female" className="focus:bg-zinc-100 dark:focus:bg-white/10 dark:focus:text-white">Female</SelectItem>
                                                     <SelectItem value="other"  className="focus:bg-zinc-100 dark:focus:bg-white/10 dark:focus:text-white">Other</SelectItem>
@@ -235,7 +243,6 @@ export default function Register() {
                                         </Field>
                                     </div>
 
-                                    {/* Divider */}
                                     <Divider label="Security" />
 
                                     {/* Passwords */}
@@ -264,24 +271,62 @@ export default function Register() {
                                         </Field>
                                     </div>
 
-                                    {/* Profile Photo */}
+                                    <Divider label="Profile Photo" />
+
+                                    {/* Profile Photo — custom uploader with preview */}
                                     <Field
                                         label={<>Profile Photo <span className="normal-case font-normal text-zinc-400 dark:text-white/25">(optional)</span></>}
                                         error={errors.user_image}
                                     >
-                                        <input
-                                            type="file"
-                                            accept="image/*"
-                                            onChange={e => setData('user_image', e.target.files[0])}
-                                            className="w-full rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 transition-all
-                                                bg-zinc-50 border border-zinc-200 text-zinc-500
-                                                focus:ring-zinc-200
-                                                file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-medium
-                                                file:bg-zinc-200 file:text-zinc-700 hover:file:bg-zinc-300 file:transition-colors file:cursor-pointer
-                                                dark:bg-white/8 dark:border-white/10 dark:text-white/50
-                                                dark:focus:ring-white/25
-                                                dark:file:bg-white/10 dark:file:text-white/70 dark:hover:file:bg-white/15"
-                                        />
+                                        <div className="flex items-center gap-4">
+                                            {/* Preview circle */}
+                                            <div className="relative flex-shrink-0">
+                                                <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-zinc-200 dark:border-white/10 bg-zinc-100 dark:bg-white/5 flex items-center justify-center">
+                                                    {preview ? (
+                                                        <img src={preview} alt="Preview" className="w-full h-full object-cover" />
+                                                    ) : (
+                                                        <User size={24} className="text-zinc-300 dark:text-white/20" />
+                                                    )}
+                                                </div>
+                                                {preview && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={removeImage}
+                                                        className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 hover:bg-red-600 border-2 border-white dark:border-zinc-900 flex items-center justify-center transition-colors"
+                                                    >
+                                                        <X size={10} className="text-white" />
+                                                    </button>
+                                                )}
+                                            </div>
+
+                                            {/* Upload button */}
+                                            <div className="flex-1">
+                                                <input
+                                                    ref={fileRef}
+                                                    type="file"
+                                                    accept="image/jpeg,image/png,image/jpg,image/webp"
+                                                    onChange={handleFileChange}
+                                                    className="hidden"
+                                                    id="user_image_input"
+                                                />
+                                                <label
+                                                    htmlFor="user_image_input"
+                                                    className="flex items-center gap-2 w-full cursor-pointer rounded-xl border-2 border-dashed px-4 py-3 transition-all
+                                                        border-zinc-200 hover:border-zinc-400 bg-zinc-50 hover:bg-zinc-100
+                                                        dark:border-white/10 dark:hover:border-white/25 dark:bg-white/3 dark:hover:bg-white/6"
+                                                >
+                                                    <ImagePlus size={16} className="text-zinc-400 dark:text-white/30 flex-shrink-0" />
+                                                    <div className="min-w-0">
+                                                        <p className="text-xs font-medium text-zinc-500 dark:text-white/50">
+                                                            {data.user_image ? data.user_image.name : 'Click to upload photo'}
+                                                        </p>
+                                                        <p className="text-[10px] text-zinc-400 dark:text-white/25 mt-0.5">
+                                                            JPG, PNG, WEBP — max 2MB
+                                                        </p>
+                                                    </div>
+                                                </label>
+                                            </div>
+                                        </div>
                                     </Field>
 
                                     {/* Global error */}
@@ -319,7 +364,6 @@ export default function Register() {
                                 </form>
                             </CardContent>
                         </Card>
-
                     </div>
                 </div>
             </Layout>
@@ -342,4 +386,4 @@ function Divider({ label }) {
             </div>
         </div>
     )
-} 
+}
