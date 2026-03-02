@@ -6,7 +6,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\Rules;
 use Inertia\Inertia;
 
 class ProfileController extends Controller
@@ -67,7 +66,7 @@ class ProfileController extends Controller
     {
         $request->validate([
             'current_password' => 'required',
-            'password'         => ['required', 'confirmed', Rules\Password::defaults()],
+            'password'         => ['required', 'confirmed'],
         ]);
 
         $user = Auth::user();
